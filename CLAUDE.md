@@ -6,110 +6,80 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **IMPORTANT : Réponds TOUJOURS en français pour ce projet, sans exception.**
 
-Tu es un assistant développeur expert en React Native et TypeScript, tu aides à construire l'application iOS native EdgeCoach pour l'entraînement sportif (triathlon/cyclisme).
+Tu es un assistant développeur expert en Swift et SwiftUI, tu aides à construire l'application iOS native EdgeCoach pour l'entraînement sportif (triathlon/cyclisme).
 
 ## Vue d'ensemble
 
-EdgeCoach iOS est une application React Native (iOS) qui se connecte au backend Flask existant. C'est la version mobile native de la webapp EdgeCoach.
+EdgeCoach iOS est une application native SwiftUI qui se connecte au backend Flask existant. C'est la version mobile native de la webapp EdgeCoach.
 
 **Stack technique :**
 
-- React Native 0.82 + TypeScript
-- React Navigation 7 (Stack + Bottom Tabs)
-- Axios pour les appels API
-- AsyncStorage pour le stockage local
-- React Native Vector Icons
+- Swift 5.9+ / SwiftUI
+- iOS 17.0+ minimum
+- Swift Charts pour les graphiques
+- URLSession / async-await pour les appels API
+- Keychain pour le stockage sécurisé des tokens
+- Combine pour la réactivité
 
 **Backend :** API Flask sur `http://127.0.0.1:5002/api` (en développement)
 
 ## Commandes de Développement
 
 ```bash
-# Installation initiale
-cd frontendios
-npm install
-cd ios && bundle install && bundle exec pod install && cd ..
-
-# Lancer l'app sur simulateur iOS
-npm run ios
-# ou avec simulateur spécifique
-npx react-native run-ios --simulator="iPhone 15 Pro"
-
-# Lancer Metro bundler seul
-npm start
-
-# Reset cache Metro (si problèmes de build)
-npx react-native start --reset-cache
-
-# Linting
-npm run lint
-
-# Tests
-npm test
-
-# Réinstaller les pods après modification de dépendances
-cd ios && bundle exec pod install && cd ..
-
 # Ouvrir le projet dans Xcode
-xed frontendios/ios/EdgeCoachIOS.xcworkspace
+open EdgeCoachSwiftUI/EdgeCoach.xcodeproj
+
+# Build depuis la ligne de commande
+xcodebuild -project EdgeCoachSwiftUI/EdgeCoach.xcodeproj -scheme EdgeCoach -destination 'platform=iOS Simulator,name=iPhone 15 Pro' build
+
+# Lancer les tests
+xcodebuild -project EdgeCoachSwiftUI/EdgeCoach.xcodeproj -scheme EdgeCoach -destination 'platform=iOS Simulator,name=iPhone 15 Pro' test
 ```
 
 ## Architecture du Projet
 
 ```text
-frontendios/
-├── App.tsx                    # Point d'entrée, providers (SafeAreaProvider, AuthProvider)
-├── src/
-│   ├── contexts/              # Context React (AuthContext)
-│   ├── navigation/            # React Navigation configuration
-│   │   ├── AppNavigator.tsx   # Navigation racine (Auth vs Main)
-│   │   ├── AuthNavigator.tsx  # Stack login/register
-│   │   ├── MainTabNavigator.tsx # Bottom tabs (Dashboard, Calendar, Coach, Stats, Profile)
-│   │   └── types.ts           # Types de navigation TypeScript
-│   ├── screens/               # Écrans de l'application
-│   │   ├── auth/              # LoginScreen, RegisterScreen
-│   │   ├── DashboardScreen.tsx
-│   │   ├── CalendarScreen.tsx
-│   │   ├── CoachChatScreen.tsx
-│   │   ├── StatsScreen.tsx
-│   │   ├── ProfileScreen.tsx
+EdgeCoachSwiftUI/
+├── EdgeCoach.xcodeproj        # Projet Xcode
+├── EdgeCoach/
+│   ├── EdgeCoachApp.swift     # Point d'entrée de l'application
+│   ├── Models/                # Modèles de données (Codable)
+│   ├── Views/                 # Vues SwiftUI
+│   │   ├── Auth/              # LoginView, RegisterView
+│   │   ├── Dashboard/         # DashboardView
+│   │   ├── Calendar/          # CalendarView
+│   │   ├── Stats/             # StatsView
+│   │   ├── Profile/           # ProfileView
+│   │   └── Components/        # Composants réutilisables
+│   ├── ViewModels/            # ViewModels (MVVM)
+│   ├── Services/              # Services API et métier
+│   │   ├── APIService.swift   # Client HTTP avec async/await
+│   │   ├── AuthService.swift  # Authentification
 │   │   └── ...
-│   ├── services/              # Services API (pattern identique au frontend web)
-│   │   ├── api.ts             # Client Axios avec intercepteurs, retry, gestion erreurs
-│   │   ├── userService.ts
-│   │   ├── chatService.ts
-│   │   ├── activitiesService.ts
-│   │   └── ...
-│   ├── components/            # Composants réutilisables (à développer)
-│   │   ├── ui/
-│   │   ├── charts/
-│   │   └── common/
-│   ├── theme/                 # Design tokens
-│   │   ├── colors.ts          # Palette de couleurs EdgeCoach
-│   │   ├── typography.ts      # Styles de texte
-│   │   └── spacing.ts         # Espacements
-│   ├── hooks/                 # Hooks personnalisés
-│   ├── store/                 # Redux (prévu)
-│   └── utils/                 # Utilitaires
-├── ios/                       # Projet Xcode natif
-└── android/                   # Projet Android (non prioritaire)
+│   ├── Extensions/            # Extensions Swift
+│   ├── Utilities/             # Utilitaires
+│   └── Resources/             # Assets, couleurs, fonts
+└── EdgeCoachTests/            # Tests unitaires
 ```
 
 ## Conventions de Code
 
-### TypeScript/React Native
+### Swift/SwiftUI
 
-- **Composants** : `PascalCase`, fonctionnels avec hooks
+- **Types** : `PascalCase` pour structs, classes, enums, protocols
 - **Variables/fonctions** : `camelCase`
-- **Types** : Interfaces TypeScript pour props et données
-- **Styles** : `StyleSheet.create()` en fin de fichier
-- **Navigation** : Types stricts via `RootStackParamList`
+- **Constantes** : `camelCase` ou `UPPER_SNAKE_CASE` pour les constantes globales
+- **Vues** : Suffixe `View` (ex: `DashboardView`, `SessionDetailView`)
+- **ViewModels** : Suffixe `ViewModel` avec `@Observable` ou `ObservableObject`
+- **Services** : Suffixe `Service` (ex: `APIService`, `AuthService`)
 
 ### Patterns importants
 
-- **Services API** : Utilisent `apiService.get/post/put/delete` avec retry automatique
-- **Authentification** : `AuthContext` gère l'état auth via AsyncStorage
-- **Navigation conditionnelle** : `AppNavigator` affiche Auth ou Main selon `isAuthenticated`
+- **Architecture** : MVVM (Model-View-ViewModel)
+- **Navigation** : `NavigationStack` avec `NavigationPath` pour la navigation programmatique
+- **État** : `@State`, `@Binding`, `@Observable`, `@Environment`
+- **Réseau** : `async/await` avec `URLSession`, gestion d'erreurs avec `Result` ou `throws`
+- **Données** : Protocole `Codable` pour la sérialisation JSON
 
 ## Méthodologie de Développement
 
@@ -129,20 +99,15 @@ J'ai identifié [problème/amélioration possible].
 Souhaitez-vous que je [action proposée] ? (oui/non)
 ```
 
-### Vérification Obligatoire après Modification Frontend
+### Vérification Obligatoire après Modification
 
-**RÈGLE CRITIQUE : Après TOUTE modification de l'interface frontend (screens, components, navigation, styles), tu DOIS :**
+**RÈGLE CRITIQUE : Après TOUTE modification de l'interface (Views, ViewModels, navigation), tu DOIS :**
 
-1. Vérifier que le code compile sans erreurs TypeScript
-2. Relancer l'application avec la commande :
+1. Vérifier que le code compile sans erreurs Swift
+2. Tester dans le simulateur si possible
+3. Confirmer à l'utilisateur que l'app compile et fonctionne
 
-```bash
-npx react-native run-ios
-```
-
-3. Confirmer à l'utilisateur que l'app a été relancée et fonctionne
-
-**Ne jamais considérer une modification frontend comme terminée sans avoir relancé l'app.**
+**Ne jamais considérer une modification comme terminée sans avoir vérifié la compilation.**
 
 ### Processus de Modification
 
@@ -153,7 +118,7 @@ Pour toute modification :
 3. **Attendre** la validation de l'utilisateur
 4. **Découper** en étapes avec TodoWrite
 5. **Exécuter** étape par étape
-6. **Relancer** l'app iOS après chaque modification frontend
+6. **Vérifier** la compilation après chaque modification
 
 ### Gestion des Sessions
 
@@ -161,76 +126,47 @@ Au démarrage de chaque conversation, lire `.context/current_session.md` si pré
 
 ## Points Techniques Clés
 
-### Configuration API (src/services/api.ts)
+### Configuration API (Services/APIService.swift)
 
 - URL de base : `http://127.0.0.1:5002/api`
-- Retry automatique avec exponential backoff (3 tentatives)
-- Token JWT via `AsyncStorage.getItem('authToken')`
-- Intercepteurs pour logging en `__DEV__`
+- Authentification : Token JWT stocké dans Keychain
+- Gestion d'erreurs centralisée
+- Retry automatique si nécessaire
 
-### Navigation (src/navigation/)
+### Navigation
 
-- **AppNavigator** : Conteneur principal, switch Auth/Main
-- **AuthNavigator** : Stack Navigator (Login → Register)
-- **MainTabNavigator** : Bottom Tabs avec 5 onglets
-- Écrans modaux : SessionDetail, Zones, Equipment
+- `NavigationStack` comme conteneur principal
+- `TabView` pour la navigation par onglets (Dashboard, Calendar, Stats, Profile)
+- Modals avec `.sheet()` ou `.fullScreenCover()`
 
-### Thème (src/theme/)
+### Thème et Design
 
-- Couleurs : `colors.primary`, `colors.sport.*`, `colors.neutral.*`
-- Typography : fontSizes, fontWeights, lineHeights
-- Spacing : scale de 0 à 80
+- Utiliser les couleurs système iOS pour le dark mode automatique
+- `Color.accentColor` pour la couleur principale
+- SF Symbols pour les icônes
+- Respecter les Human Interface Guidelines d'Apple
 
 ### Connexion au backend
 
-Pour tester sur appareil physique, remplacer `127.0.0.1` par l'IP locale du Mac dans `src/services/api.ts`.
+Pour tester sur appareil physique, remplacer `127.0.0.1` par l'IP locale du Mac dans `APIService.swift`.
 
 ## Tests
 
 ### Règle Obligatoire - Tests Unitaires
 
-**RÈGLE CRITIQUE : Lors de la création ou modification de code, tu DOIS ajouter/mettre à jour les tests unitaires correspondants (sauf si la partie est déjà couverte par des tests existants).**
+**RÈGLE CRITIQUE : Lors de la création ou modification de code, tu DOIS ajouter/mettre à jour les tests unitaires correspondants.**
 
-- **Nouveau service/hook/utilitaire** : Créer le fichier de test associé
+- **Nouveau service/ViewModel** : Créer le fichier de test associé
 - **Modification de logique existante** : Mettre à jour les tests SI la logique testée change
-- **Nouveau composant** : Ajouter des tests si logique complexe
-- **Code déjà testé** : Vérifier que les tests existants passent toujours
+- **Nouveaux modèles** : Tester l'encodage/décodage JSON
 
 **Emplacement des tests :**
 
-- Services : `src/services/__tests__/`
-- Hooks : `src/hooks/__tests__/`
-- Composants : `src/components/__tests__/` ou co-localisés
-- Tests E2E : `e2e/flows/` (scénarios Maestro YAML)
-
-**Commandes :**
-
-```bash
-# Lancer tous les tests unitaires
-npm test
-
-# Lancer tests E2E Maestro
-maestro test e2e/flows/
-```
-
-### Tests E2E avec Maestro
-
-Les scénarios E2E sont écrits en YAML dans `e2e/flows/`. Utiliser des `testID` sur les composants pour les identifier :
-
-```tsx
-<TouchableOpacity testID="login-button" onPress={handleLogin}>
-```
+- Tests unitaires : `EdgeCoachTests/`
+- Tests UI : `EdgeCoachUITests/`
 
 ## Commits et Pull Requests
 
 - **Messages** : En français, format `[TYPE] Description courte`
 - Types : `FEAT`, `FIX`, `REFACTOR`, `DOCS`, `TEST`, `STYLE`
 - **Validation** : Demander confirmation avant chaque commit
-
-## Migration depuis la Webapp
-
-Voir `PLAN_MIGRATION_IOS.md` pour :
-
-- Guide de conversion Web → Native (div→View, span→Text, etc.)
-- Ordre de priorité des écrans à migrer
-- Intégrations natives prévues (HealthKit, notifications push, OAuth natif)
