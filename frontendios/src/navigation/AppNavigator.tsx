@@ -19,6 +19,7 @@ import ZonesScreen from '../screens/ZonesScreen';
 import EquipmentScreen from '../screens/EquipmentScreen';
 import TrainingPlanCreatorScreen from '../screens/TrainingPlanCreatorScreen';
 import DisciplineSessionsScreen from '../screens/DisciplineSessionsScreen';
+import WeeklyProgressDetailScreen from '../screens/WeeklyProgressDetailScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -77,6 +78,16 @@ const AppNavigator: React.FC = () => {
               component={DisciplineSessionsScreen}
               options={{
                 headerShown: true,
+                presentation: 'card',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="WeeklyProgressDetail"
+              component={WeeklyProgressDetailScreen}
+              options={{
+                headerShown: true,
+                title: 'Progression',
                 presentation: 'card',
                 animation: 'slide_from_right',
               }}

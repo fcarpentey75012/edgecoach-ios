@@ -22,7 +22,7 @@ export type MainTabParamList = {
 // Import des types de session
 import { Activity } from '../services/activitiesService';
 import { PlannedSession } from '../services/plansService';
-import { DisciplineType } from '../services/dashboardService';
+import { DisciplineType, WeeklySummaryData } from '../services/dashboardService';
 
 // Stack principale avec nested navigators
 export type RootStackParamList = {
@@ -35,6 +35,7 @@ export type RootStackParamList = {
   WorkoutDetail: { workoutId: string };
   SessionDetail: { session: Activity | PlannedSession; isPlanned: boolean };
   DisciplineSessions: { discipline: DisciplineType; weekStart?: string };
+  WeeklyProgressDetail: { weeklyData: WeeklySummaryData | null };
   Zones: undefined;
   Equipment: undefined;
   EditProfile: undefined;

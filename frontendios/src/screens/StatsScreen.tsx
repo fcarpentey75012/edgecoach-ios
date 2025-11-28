@@ -61,10 +61,15 @@ const StatsScreen: React.FC = () => {
 
   // Charger toutes les statistiques
   const loadStats = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('[StatsScreen] No user.id, skipping load');
+      return;
+    }
 
     const days = periodToDays(selectedPeriod);
-    console.log(`[StatsScreen] Loading stats for period=${selectedPeriod}, days=${days}`);
+    console.log(`[StatsScreen] ========== LOADING STATS ==========`);
+    console.log(`[StatsScreen] user.id=${user.id}`);
+    console.log(`[StatsScreen] selectedPeriod=${selectedPeriod}, days=${days}`);
 
     try {
       // Charger en parallèle: stats basiques + training load + advanced
@@ -74,12 +79,16 @@ const StatsScreen: React.FC = () => {
         statsAdvancedService.getAdvancedStats(user.id, days, 'all'),
       ]);
 
-      console.log(`[StatsScreen] Basic stats result:`, basicResult.data?.summary);
-      console.log(`[StatsScreen] Training load result:`, loadResult.data);
+      console.log(`[StatsScreen] Basic stats received for period=${selectedPeriod}:`);
+      console.log(`[StatsScreen]   - sessions: ${basicResult.data?.summary?.sessionsCount}`);
+      console.log(`[StatsScreen]   - duration: ${basicResult.data?.summary?.totalDuration}s`);
+      console.log(`[StatsScreen]   - distance: ${basicResult.data?.summary?.totalDistance}m`);
+      console.log(`[StatsScreen]   - dates: ${basicResult.data?.startDate} to ${basicResult.data?.endDate}`);
 
       if (basicResult.success && basicResult.data) {
         setStatsData(basicResult.data);
       } else {
+        console.log(`[StatsScreen] Basic stats failed, using empty stats`);
         setStatsData(statsService.getEmptyStats(selectedPeriod));
       }
 
@@ -94,7 +103,7 @@ const StatsScreen: React.FC = () => {
       // Reset sélection graphique
       setSelectedEvolutionIndex(null);
     } catch (error) {
-      console.error('Erreur chargement stats:', error);
+      console.error('[StatsScreen] Erreur chargement stats:', error);
       setStatsData(statsService.getEmptyStats(selectedPeriod));
     } finally {
       setLoading(false);
@@ -113,7 +122,10 @@ const StatsScreen: React.FC = () => {
   }, [loadStats]);
 
   const handlePeriodChange = (period: StatsPeriod) => {
+    console.log(`[StatsScreen] Period change requested: ${selectedPeriod} -> ${period}`);
     if (period !== selectedPeriod) {
+      console.log(`[StatsScreen] Setting new period: ${period}`);
+      setLoading(true);
       setSelectedPeriod(period);
     }
   };
@@ -706,7 +718,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.xs,
   },
   statusText: {
-    ...typography.styles.labelSmall,
+    ...typography.styles.caption,
     fontWeight: '600',
   },
   loadMetricsRow: {

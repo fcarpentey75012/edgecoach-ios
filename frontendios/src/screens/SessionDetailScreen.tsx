@@ -14,13 +14,14 @@ import {
   TextInput,
   Alert,
   Dimensions,
+  Modal,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
 import { Activity, activitiesService } from '../services/activitiesService';
-import { PlannedSession } from '../services/plansService';
+import { PlannedSession, plansService } from '../services/plansService';
 import {
   logbookService,
   LogbookData,
@@ -101,6 +102,11 @@ const SessionDetailScreen: React.FC = () => {
   const [isLoadingGPS, setIsLoadingGPS] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [updatedFileData, setUpdatedFileData] = useState<any>(null);
+
+  // État pour l'édition du titre (séances prévues uniquement)
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editableTitle, setEditableTitle] = useState(session.title);
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
 
   // Données de la séance
   const activityData = !isPlanned ? (session as Activity) : null;
@@ -229,6 +235,36 @@ const SessionDetailScreen: React.FC = () => {
     }
   };
 
+  // Sauvegarder le nouveau titre
+  const saveTitle = async () => {
+    if (!isPlanned || !user?.id || !editableTitle.trim()) return;
+
+    const trimmedTitle = editableTitle.trim();
+    if (trimmedTitle === session.title) {
+      setIsEditingTitle(false);
+      return;
+    }
+
+    setIsSavingTitle(true);
+    try {
+      const result = await plansService.updateSessionName(user.id, session.id, trimmedTitle);
+
+      if (result.success) {
+        // Mettre à jour le titre localement
+        (session as PlannedSession).title = trimmedTitle;
+        (session as PlannedSession).name = trimmedTitle;
+        setIsEditingTitle(false);
+        Alert.alert('Succès', 'Nom de la séance modifié');
+      } else {
+        Alert.alert('Erreur', result.error || 'Impossible de modifier le nom');
+      }
+    } catch (error) {
+      Alert.alert('Erreur', 'Erreur lors de la modification');
+    } finally {
+      setIsSavingTitle(false);
+    }
+  };
+
   // Helpers
   const getDisciplineColor = (): string => {
     switch (session.discipline) {
@@ -318,7 +354,17 @@ const SessionDetailScreen: React.FC = () => {
         <View style={styles.headerIcon}>
           <Icon name={getDisciplineIcon()} size={28} color={colors.neutral.white} />
         </View>
-        <Text style={styles.headerTitle} numberOfLines={2}>{session.title}</Text>
+        <View style={styles.headerTitleRow}>
+          <Text style={styles.headerTitle} numberOfLines={2}>{editableTitle}</Text>
+          {isPlanned && (
+            <TouchableOpacity
+              style={styles.editTitleButton}
+              onPress={() => setIsEditingTitle(true)}
+            >
+              <Icon name="pencil" size={18} color="rgba(255,255,255,0.9)" />
+            </TouchableOpacity>
+          )}
+        </View>
         <Text style={styles.headerDate}>
           {new Date(session.date).toLocaleDateString('fr-FR', {
             weekday: 'long', day: 'numeric', month: 'long',
@@ -832,9 +878,57 @@ const SessionDetailScreen: React.FC = () => {
     );
   };
 
+  // ============ RENDER EDIT TITLE MODAL ============
+  const renderEditTitleModal = () => (
+    <Modal
+      visible={isEditingTitle}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setIsEditingTitle(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Modifier le nom</Text>
+          <TextInput
+            style={styles.modalInput}
+            value={editableTitle}
+            onChangeText={setEditableTitle}
+            placeholder="Nom de la séance"
+            placeholderTextColor={colors.neutral.gray[400]}
+            autoFocus
+            selectTextOnFocus
+          />
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={styles.modalButtonCancel}
+              onPress={() => {
+                setEditableTitle(session.title);
+                setIsEditingTitle(false);
+              }}
+            >
+              <Text style={styles.modalButtonCancelText}>Annuler</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButtonSave, isSavingTitle && styles.modalButtonDisabled]}
+              onPress={saveTitle}
+              disabled={isSavingTitle || !editableTitle.trim()}
+            >
+              {isSavingTitle ? (
+                <ActivityIndicator size="small" color={colors.neutral.white} />
+              ) : (
+                <Text style={styles.modalButtonSaveText}>Enregistrer</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
   // ============ MAIN RENDER ============
   return (
     <View style={styles.container}>
+      {renderEditTitleModal()}
       {renderHeader()}
       {renderTabs()}
       <ScrollView
@@ -882,11 +976,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xs,
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
   headerTitle: {
     ...typography.styles.h3,
     color: colors.neutral.white,
     textAlign: 'center',
     marginBottom: 2,
+    flexShrink: 1,
+  },
+  editTitleButton: {
+    padding: spacing.xs,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: spacing.borderRadius.sm,
   },
   headerDate: {
     ...typography.styles.caption,
@@ -1091,6 +1197,67 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral.gray[400],
   },
   saveButtonText: {
+    ...typography.styles.label,
+    color: colors.neutral.white,
+    fontWeight: '600',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: colors.neutral.white,
+    borderRadius: spacing.borderRadius.lg,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    ...typography.styles.h4,
+    color: colors.secondary[800],
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  modalInput: {
+    backgroundColor: colors.neutral.gray[50],
+    borderRadius: spacing.borderRadius.md,
+    padding: spacing.md,
+    ...typography.styles.body,
+    color: colors.secondary[800],
+    borderWidth: 1,
+    borderColor: colors.neutral.gray[200],
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  modalButtonCancel: {
+    flex: 1,
+    padding: spacing.md,
+    borderRadius: spacing.borderRadius.md,
+    backgroundColor: colors.neutral.gray[100],
+    alignItems: 'center',
+  },
+  modalButtonCancelText: {
+    ...typography.styles.label,
+    color: colors.neutral.gray[600],
+  },
+  modalButtonSave: {
+    flex: 1,
+    padding: spacing.md,
+    borderRadius: spacing.borderRadius.md,
+    backgroundColor: colors.primary[600],
+    alignItems: 'center',
+  },
+  modalButtonDisabled: {
+    backgroundColor: colors.neutral.gray[400],
+  },
+  modalButtonSaveText: {
     ...typography.styles.label,
     color: colors.neutral.white,
     fontWeight: '600',

@@ -551,11 +551,12 @@ struct ActivityFileData: Decodable {
     let records: [ActivityRecord]?
     let laps: [ActivityLap]?
     let duration: Double?
+    let movingTime: Double?          // Temps en mouvement (sans les pauses)
     let ascent: Double?
     let descent: Double?
-    let avgSpeed: Double?
-    let maxSpeed: Double?
-    let avgSpeedMovingKmh: Double?
+    let avgSpeed: Double?            // Vitesse moyenne EN MOUVEMENT (km/h) - c'est ce qu'on veut afficher
+    let avgSpeedTotal: Double?       // Vitesse moyenne totale incluant pauses (km/h)
+    let maxSpeed: Double?            // Vitesse max (km/h)
     let hrAvg: Double?
     let hrMax: Double?
     let hrMin: Double?
@@ -574,11 +575,17 @@ struct ActivityFileData: Decodable {
         case laps
         case allLaps = "all_laps"
         case duration
+        case movingTime = "moving_time"
+        case timerTime = "timer_time"
         case ascent
         case descent
+        // Vitesse - plusieurs formats possibles
         case avgSpeed = "avg_speed"
-        case maxSpeed = "max_speed"
+        case avgSpeedKmh = "avg_speed_kmh"
         case avgSpeedMovingKmh = "avg_speed_moving_kmh"
+        case avgSpeedMs = "avg_speed_ms"
+        case maxSpeed = "max_speed"
+        case maxSpeedKmh = "max_speed_kmh"
         case hrAvg = "hr_avg"
         case hrMax = "hr_max"
         case hrMin = "hr_min"
@@ -624,11 +631,71 @@ struct ActivityFileData: Decodable {
         }
 
         duration = try container.decodeIfPresent(Double.self, forKey: .duration)
+
+        // Moving time - peut être sous moving_time ou timer_time
+        if let mt = try? container.decodeIfPresent(Double.self, forKey: .movingTime) {
+            movingTime = mt
+        } else if let tt = try? container.decodeIfPresent(Double.self, forKey: .timerTime) {
+            movingTime = tt
+        } else {
+            movingTime = nil
+        }
+
         ascent = try container.decodeIfPresent(Double.self, forKey: .ascent)
         descent = try container.decodeIfPresent(Double.self, forKey: .descent)
-        avgSpeed = try container.decodeIfPresent(Double.self, forKey: .avgSpeed)
-        maxSpeed = try container.decodeIfPresent(Double.self, forKey: .maxSpeed)
-        avgSpeedMovingKmh = try container.decodeIfPresent(Double.self, forKey: .avgSpeedMovingKmh)
+
+        // Vitesse moyenne EN MOUVEMENT (priorité: avg_speed_moving_kmh > avg_speed_kmh > avg_speed converti)
+        // On veut toujours la vitesse en mouvement, pas la vitesse totale
+        if let movingKmh = try? container.decodeIfPresent(Double.self, forKey: .avgSpeedMovingKmh) {
+            // Déjà en km/h, vitesse en mouvement
+            avgSpeed = movingKmh
+            // Calculer vitesse totale si on a les données
+            if let dist = try? container.decodeIfPresent(Double.self, forKey: .ascent),  // placeholder
+               let dur = duration, dur > 0 {
+                // avgSpeedTotal sera calculé plus bas
+            }
+            avgSpeedTotal = try container.decodeIfPresent(Double.self, forKey: .avgSpeedKmh)
+        } else if let speedKmh = try? container.decodeIfPresent(Double.self, forKey: .avgSpeedKmh) {
+            // Déjà en km/h
+            avgSpeed = speedKmh
+            avgSpeedTotal = nil
+        } else if let speedMs = try? container.decodeIfPresent(Double.self, forKey: .avgSpeed) {
+            // Vérifier si c'est en m/s ou déjà en km/h
+            // Si > 50, c'est probablement déjà en km/h (peu probable qu'on roule à 50 m/s = 180 km/h)
+            if speedMs > 50 {
+                avgSpeed = speedMs  // Déjà en km/h
+            } else if speedMs > 0 && speedMs < 30 {
+                // Probablement en m/s, convertir
+                avgSpeed = speedMs * 3.6
+            } else {
+                avgSpeed = speedMs
+            }
+            avgSpeedTotal = nil
+        } else {
+            avgSpeed = nil
+            avgSpeedTotal = nil
+        }
+
+        // Vitesse max
+        if let maxKmh = try? container.decodeIfPresent(Double.self, forKey: .maxSpeedKmh) {
+            maxSpeed = maxKmh
+        } else if let maxMs = try? container.decodeIfPresent(Double.self, forKey: .maxSpeed) {
+            // Même logique de conversion
+            if maxMs > 50 {
+                maxSpeed = maxMs
+            } else if maxMs > 0 && maxMs < 30 {
+                maxSpeed = maxMs * 3.6
+            } else {
+                maxSpeed = maxMs
+            }
+        } else {
+            maxSpeed = nil
+        }
+
+        #if DEBUG
+        print("🏃 FileData speeds: avgSpeed=\(avgSpeed ?? 0) km/h, maxSpeed=\(maxSpeed ?? 0) km/h")
+        #endif
+
         hrAvg = try container.decodeIfPresent(Double.self, forKey: .hrAvg)
         hrMax = try container.decodeIfPresent(Double.self, forKey: .hrMax)
         hrMin = try container.decodeIfPresent(Double.self, forKey: .hrMin)

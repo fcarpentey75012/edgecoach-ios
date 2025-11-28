@@ -63,6 +63,11 @@ export interface PlansResult {
   error?: string;
 }
 
+export interface UpdateSessionResult {
+  success: boolean;
+  error?: string;
+}
+
 class PlansService {
   /**
    * Récupérer le dernier plan d'entraînement
@@ -187,6 +192,32 @@ class PlansService {
       groups[date].push(session);
       return groups;
     }, {} as Record<string, PlannedSession[]>);
+  }
+
+  /**
+   * Mettre à jour le nom d'une séance prévue
+   * @param userId - ID de l'utilisateur
+   * @param sessionId - ID de la séance (format: plan_xxx)
+   * @param newName - Nouveau nom de la séance
+   */
+  async updateSessionName(userId: string, sessionId: string, newName: string): Promise<UpdateSessionResult> {
+    try {
+      // Extraire l'ID original (enlever le préfixe "plan_")
+      const originalId = sessionId.replace('plan_', '');
+
+      await apiService.put('/plans/session/rename', {
+        user_id: userId,
+        session_id: originalId,
+        new_name: newName,
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Erreur lors de la mise à jour du nom',
+      };
+    }
   }
 }
 

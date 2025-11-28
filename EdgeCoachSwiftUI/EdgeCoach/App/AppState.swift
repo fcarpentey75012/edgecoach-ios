@@ -13,6 +13,9 @@ class AppState: ObservableObject {
     @Published var showingSessionDetail: Activity? = nil
     @Published var showingPlannedSession: PlannedSession? = nil
 
+    // Coach chat sidebar state
+    @Published var showingChatSidebar: Bool = false
+
     // Alert state
     @Published var alertMessage: String? = nil
     @Published var showAlert: Bool = false

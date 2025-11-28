@@ -160,45 +160,171 @@ const DashboardScreen: React.FC = () => {
 
       {/* Weekly Progress */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Progression de la semaine</Text>
-        <View style={styles.progressCard}>
-          <View style={styles.progressItem}>
-            <Text style={styles.progressValue}>
-              {dashboardService.formatDuration(weeklyData?.summary.totalDuration || 0)}
-            </Text>
-            <Text style={styles.progressLabel}>Temps total</Text>
-          </View>
-          <View style={styles.progressDivider} />
-          <View style={styles.progressItem}>
-            <Text style={styles.progressValue}>
-              {weeklyData?.summary.sessionsCount || 0}
-            </Text>
-            <Text style={styles.progressLabel}>Séances</Text>
-          </View>
-          <View style={styles.progressDivider} />
-          <View style={styles.progressItem}>
-            <Text style={styles.progressValue}>
-              {dashboardService.formatDistance(weeklyData?.summary.totalDistance || 0)}
-            </Text>
-            <Text style={styles.progressLabel}>Distance</Text>
-          </View>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Progression de la semaine</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('WeeklyProgressDetail', { weeklyData })}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.seeMoreText}>Voir plus</Text>
+          </TouchableOpacity>
         </View>
-        {/* Barre de progression vers l'objectif */}
-        {weeklyData?.weekProgress && weeklyData.weekProgress.targetDuration > 0 && (
-          <View style={styles.progressBarContainer}>
-            <View style={styles.progressBarBackground}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { width: `${Math.min(weeklyData.weekProgress.percentage, 100)}%` },
-                ]}
-              />
+        <TouchableOpacity
+          style={styles.progressCard}
+          onPress={() => navigation.navigate('WeeklyProgressDetail', { weeklyData })}
+          activeOpacity={0.7}
+        >
+          {/* Ligne principale : Temps, Séances, Distance */}
+          <View style={styles.progressRow}>
+            <View style={styles.progressItem}>
+              <View style={styles.progressIconContainer}>
+                <Icon name="time-outline" size={20} color={colors.primary[500]} />
+              </View>
+              <Text style={styles.progressValue}>
+                {dashboardService.formatDuration(weeklyData?.summary.totalDuration || 0)}
+              </Text>
+              <Text style={styles.progressLabel}>Temps</Text>
             </View>
-            <Text style={styles.progressBarText}>
-              {weeklyData.weekProgress.percentage}% de l'objectif hebdomadaire
-            </Text>
+            <View style={styles.progressDivider} />
+            <View style={styles.progressItem}>
+              <View style={styles.progressIconContainer}>
+                <Icon name="flag-outline" size={20} color={colors.primary[500]} />
+              </View>
+              <Text style={styles.progressValue}>
+                {weeklyData?.summary.sessionsCount || 0}
+              </Text>
+              <Text style={styles.progressLabel}>Séances</Text>
+            </View>
+            <View style={styles.progressDivider} />
+            <View style={styles.progressItem}>
+              <View style={styles.progressIconContainer}>
+                <Icon name="navigate-outline" size={20} color={colors.primary[500]} />
+              </View>
+              <Text style={styles.progressValue}>
+                {dashboardService.formatDistance(weeklyData?.summary.totalDistance || 0)}
+              </Text>
+              <Text style={styles.progressLabel}>Distance</Text>
+            </View>
           </View>
-        )}
+
+          {/* Ligne secondaire : Calories, Dénivelé */}
+          <View style={styles.progressRowSecondary}>
+            <View style={styles.progressItemSecondary}>
+              <Icon name="flame-outline" size={16} color={colors.sports.running} />
+              <Text style={styles.progressValueSecondary}>
+                {weeklyData?.summary.totalCalories || 0} kcal
+              </Text>
+            </View>
+            <View style={styles.progressItemSecondary}>
+              <Icon name="trending-up-outline" size={16} color={colors.sports.cycling} />
+              <Text style={styles.progressValueSecondary}>
+                {weeklyData?.summary.totalElevation || 0} m D+
+              </Text>
+            </View>
+          </View>
+
+          {/* Répartition par sport */}
+          {weeklyData && weeklyData.summary.sessionsCount > 0 && (
+            <View style={styles.sportBreakdown}>
+              <Text style={styles.sportBreakdownTitle}>Répartition</Text>
+              <View style={styles.sportBreakdownBar}>
+                {weeklyData.byDiscipline.cyclisme.duration > 0 && (
+                  <View
+                    style={[
+                      styles.sportBreakdownSegment,
+                      {
+                        flex: weeklyData.byDiscipline.cyclisme.duration,
+                        backgroundColor: colors.sports.cycling,
+                      },
+                    ]}
+                  />
+                )}
+                {weeklyData.byDiscipline.course.duration > 0 && (
+                  <View
+                    style={[
+                      styles.sportBreakdownSegment,
+                      {
+                        flex: weeklyData.byDiscipline.course.duration,
+                        backgroundColor: colors.sports.running,
+                      },
+                    ]}
+                  />
+                )}
+                {weeklyData.byDiscipline.natation.duration > 0 && (
+                  <View
+                    style={[
+                      styles.sportBreakdownSegment,
+                      {
+                        flex: weeklyData.byDiscipline.natation.duration,
+                        backgroundColor: colors.sports.swimming,
+                      },
+                    ]}
+                  />
+                )}
+                {weeklyData.byDiscipline.autre.duration > 0 && (
+                  <View
+                    style={[
+                      styles.sportBreakdownSegment,
+                      {
+                        flex: weeklyData.byDiscipline.autre.duration,
+                        backgroundColor: colors.neutral.gray[400],
+                      },
+                    ]}
+                  />
+                )}
+              </View>
+              <View style={styles.sportBreakdownLegend}>
+                {weeklyData.byDiscipline.cyclisme.duration > 0 && (
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: colors.sports.cycling }]} />
+                    <Text style={styles.legendText}>Vélo</Text>
+                  </View>
+                )}
+                {weeklyData.byDiscipline.course.duration > 0 && (
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: colors.sports.running }]} />
+                    <Text style={styles.legendText}>Course</Text>
+                  </View>
+                )}
+                {weeklyData.byDiscipline.natation.duration > 0 && (
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: colors.sports.swimming }]} />
+                    <Text style={styles.legendText}>Natation</Text>
+                  </View>
+                )}
+                {weeklyData.byDiscipline.autre.duration > 0 && (
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: colors.neutral.gray[400] }]} />
+                    <Text style={styles.legendText}>Autre</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Barre de progression vers l'objectif */}
+          {weeklyData?.weekProgress && weeklyData.weekProgress.targetDuration > 0 && (
+            <View style={styles.progressBarContainer}>
+              <View style={styles.progressBarBackground}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${Math.min(weeklyData.weekProgress.percentage, 100)}%` },
+                  ]}
+                />
+              </View>
+              <Text style={styles.progressBarText}>
+                {weeklyData.weekProgress.percentage}% de l'objectif hebdomadaire
+              </Text>
+            </View>
+          )}
+
+          {/* Indicateur cliquable */}
+          <View style={styles.progressCardFooter}>
+            <Text style={styles.progressCardFooterText}>Voir les détails</Text>
+            <Icon name="chevron-forward" size={16} color={colors.primary[500]} />
+          </View>
+        </TouchableOpacity>
       </View>
 
       {/* AI Coach Insights */}
@@ -332,25 +458,46 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: spacing.lg,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
   sectionTitle: {
     ...typography.styles.h4,
     color: colors.secondary[800],
-    marginBottom: spacing.md,
+  },
+  seeMoreText: {
+    ...typography.styles.label,
+    color: colors.primary[500],
   },
   progressCard: {
     backgroundColor: colors.neutral.white,
     borderRadius: spacing.borderRadius.lg,
     padding: spacing.lg,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
     shadowColor: colors.neutral.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
   progressItem: {
     alignItems: 'center',
+    flex: 1,
+  },
+  progressIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
   },
   progressValue: {
     ...typography.styles.h3,
@@ -364,6 +511,79 @@ const styles = StyleSheet.create({
   progressDivider: {
     width: 1,
     backgroundColor: colors.neutral.gray[200],
+  },
+  progressRowSecondary: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.xl,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral.gray[100],
+  },
+  progressItemSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  progressValueSecondary: {
+    ...typography.styles.bodySmall,
+    color: colors.neutral.gray[600],
+  },
+  sportBreakdown: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral.gray[100],
+  },
+  sportBreakdownTitle: {
+    ...typography.styles.caption,
+    color: colors.neutral.gray[500],
+    marginBottom: spacing.sm,
+  },
+  sportBreakdownBar: {
+    flexDirection: 'row',
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    gap: 2,
+  },
+  sportBreakdownSegment: {
+    borderRadius: 4,
+  },
+  sportBreakdownLegend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    ...typography.styles.caption,
+    color: colors.neutral.gray[600],
+  },
+  progressCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral.gray[100],
+    gap: spacing.xs,
+  },
+  progressCardFooterText: {
+    ...typography.styles.label,
+    color: colors.primary[500],
   },
   insightCard: {
     backgroundColor: colors.primary[50],

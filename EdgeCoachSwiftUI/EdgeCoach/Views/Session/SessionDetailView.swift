@@ -559,7 +559,7 @@ private struct SpeedPaceSection: View {
                     }
 
                 default:
-                    // Vitesse moyenne
+                    // Vitesse moyenne (en mouvement - sans les pauses)
                     if let avgSpeed = activity.fileDatas?.avgSpeed {
                         MetricCard(
                             value: String(format: "%.1f", avgSpeed),
@@ -578,19 +578,6 @@ private struct SpeedPaceSection: View {
                             label: "Vit. max",
                             icon: "gauge.with.dots.needle.bottom.100percent",
                             color: .ecSuccess
-                        )
-                    }
-
-                    // Vitesse en mouvement si différente
-                    if let avgMoving = activity.fileDatas?.avgSpeedMovingKmh,
-                       let avgSpeed = activity.fileDatas?.avgSpeed,
-                       abs(avgMoving - avgSpeed) > 1 {
-                        MetricCard(
-                            value: String(format: "%.1f", avgMoving),
-                            unit: "km/h",
-                            label: "Vit. en mouvement",
-                            icon: "figure.walk",
-                            color: .ecGray500
                         )
                     }
                 }

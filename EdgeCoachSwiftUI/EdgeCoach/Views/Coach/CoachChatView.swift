@@ -5,57 +5,29 @@
 
 import SwiftUI
 
+// MARK: - CoachChatView (legacy wrapper)
+
 struct CoachChatView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var viewModel = ChatViewModel()
-    @State private var messageText = ""
-    @State private var showingSidebar = false
-    @FocusState private var isInputFocused: Bool
-
-    private let sidebarWidth: CGFloat = 280
 
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                // Main Chat Content - se décale vers la droite
-                NavigationStack {
-                    chatContent
-                }
-                .frame(width: geometry.size.width)
-                .offset(x: showingSidebar ? sidebarWidth : 0)
-                .disabled(showingSidebar)
+        CoachChatContentView(viewModel: viewModel)
+    }
+}
 
-                // Overlay transparent sur le contenu décalé
-                if showingSidebar {
-                    Color.black.opacity(0.15)
-                        .ignoresSafeArea()
-                        .offset(x: sidebarWidth)
-                        .onTapGesture {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                showingSidebar = false
-                            }
-                        }
-                }
+// MARK: - CoachChatContentView (utilisé par MainTabView)
 
-                // Sidebar des conversations
-                ConversationsSidebar(
-                    conversations: viewModel.localConversations,
-                    currentConversationId: viewModel.currentConversationId,
-                    selectedCoach: viewModel.selectedCoach,
-                    isShowing: $showingSidebar,
-                    onSelectConversation: { conversation in
-                        viewModel.selectConversation(conversation)
-                    },
-                    onNewConversation: {
-                        viewModel.startNewConversation()
-                    },
-                    onDeleteConversation: { conversation in
-                        viewModel.deleteLocalConversation(conversation)
-                    }
-                )
-                .frame(width: sidebarWidth)
-                .offset(x: showingSidebar ? 0 : -sidebarWidth)
-            }
+struct CoachChatContentView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var appState: AppState
+    @ObservedObject var viewModel: ChatViewModel
+    @State private var messageText = ""
+    @FocusState private var isInputFocused: Bool
+
+    var body: some View {
+        NavigationStack {
+            chatContent
         }
         .task {
             await viewModel.initialize(userId: authViewModel.user?.id)
@@ -131,10 +103,10 @@ struct CoachChatView: View {
     private var sidebarButton: some View {
         Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                showingSidebar.toggle()
+                appState.showingChatSidebar.toggle()
             }
         } label: {
-            Image(systemName: showingSidebar ? "xmark" : "line.3.horizontal")
+            Image(systemName: appState.showingChatSidebar ? "xmark" : "line.3.horizontal")
                 .font(.system(size: 18, weight: .medium))
                 .foregroundColor(.ecPrimary)
         }
