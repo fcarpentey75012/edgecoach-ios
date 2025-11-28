@@ -1,0 +1,695 @@
+/**
+ * Vue Calendrier - Planning des entraînements
+ * Utilise ThemeManager pour les couleurs dynamiques
+ */
+
+import SwiftUI
+
+struct CalendarView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var themeManager: ThemeManager
+    @StateObject private var viewModel = CalendarViewModel()
+
+    // Navigation states
+    @State private var selectedActivity: Activity?
+    @State private var selectedPlannedSession: PlannedSession?
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Month Header
+                CalendarHeader(
+                    currentMonth: viewModel.currentMonth,
+                    onPreviousMonth: { viewModel.previousMonth() },
+                    onNextMonth: { viewModel.nextMonth() },
+                    onToday: { viewModel.goToToday() }
+                )
+
+                // Week Days Header
+                WeekDaysHeader()
+
+                // Calendar Grid
+                CalendarGrid(
+                    viewModel: viewModel,
+                    onDateSelected: { date in
+                        viewModel.selectDate(date)
+                    }
+                )
+
+                Divider()
+                    .background(themeManager.borderColor)
+                    .padding(.vertical, ECSpacing.sm)
+
+                // Selected Date Content
+                SelectedDateContent(
+                    viewModel: viewModel,
+                    onActivityTap: { activity in
+                        selectedActivity = activity
+                    },
+                    onPlannedSessionTap: { session in
+                        selectedPlannedSession = session
+                    }
+                )
+            }
+            .background(themeManager.backgroundColor)
+            .navigationTitle("Calendrier")
+            .navigationBarTitleDisplayMode(.inline)
+            .sheet(item: $selectedActivity) { activity in
+                NavigationStack {
+                    SessionDetailView(activity: activity)
+                        .environmentObject(themeManager)
+                }
+            }
+            .sheet(item: $selectedPlannedSession) { session in
+                PlannedSessionDetailView(session: session)
+                    .environmentObject(themeManager)
+            }
+        }
+        .task {
+            if let userId = authViewModel.user?.id {
+                await viewModel.loadData(userId: userId)
+            }
+        }
+        .onChange(of: viewModel.currentDate) { newValue in
+            Task {
+                if let userId = authViewModel.user?.id {
+                    await viewModel.loadData(userId: userId)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Calendar Header
+
+struct CalendarHeader: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    let currentMonth: Date
+    let onPreviousMonth: () -> Void
+    let onNextMonth: () -> Void
+    let onToday: () -> Void
+
+    private var monthYearString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        formatter.locale = Locale(identifier: "fr_FR")
+        return formatter.string(from: currentMonth).capitalized
+    }
+
+    var body: some View {
+        HStack {
+            Button(action: onPreviousMonth) {
+                Image(systemName: "chevron.left")
+                    .font(.ecBody)
+                    .foregroundColor(themeManager.accentColor)
+            }
+
+            Spacer()
+
+            Button(action: onToday) {
+                Text(monthYearString)
+                    .font(.ecH4)
+                    .foregroundColor(themeManager.textPrimary)
+            }
+
+            Spacer()
+
+            Button(action: onNextMonth) {
+                Image(systemName: "chevron.right")
+                    .font(.ecBody)
+                    .foregroundColor(themeManager.accentColor)
+            }
+        }
+        .padding(.horizontal, ECSpacing.lg)
+        .padding(.vertical, ECSpacing.md)
+    }
+}
+
+// MARK: - Week Days Header
+
+struct WeekDaysHeader: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    private let weekDays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(weekDays, id: \.self) { day in
+                Text(day)
+                    .font(.ecCaption)
+                    .foregroundColor(themeManager.textSecondary)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, ECSpacing.sm)
+        .padding(.bottom, ECSpacing.xs)
+    }
+}
+
+// MARK: - Calendar Grid
+
+struct CalendarGrid: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    @ObservedObject var viewModel: CalendarViewModel
+    let onDateSelected: (Date) -> Void
+
+    var body: some View {
+        let days = viewModel.daysInMonth
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+
+        LazyVGrid(columns: columns, spacing: ECSpacing.xs) {
+            ForEach(days, id: \.self) { date in
+                CalendarDayCell(
+                    date: date,
+                    isCurrentMonth: viewModel.isCurrentMonth(date),
+                    isSelected: viewModel.isSelected(date),
+                    isToday: viewModel.isToday(date),
+                    hasActivity: viewModel.hasActivity(on: date),
+                    hasPlannedSession: viewModel.hasPlannedSession(on: date),
+                    onTap: { onDateSelected(date) }
+                )
+            }
+        }
+        .padding(.horizontal, ECSpacing.sm)
+    }
+}
+
+struct CalendarDayCell: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    let date: Date
+    let isCurrentMonth: Bool
+    let isSelected: Bool
+    let isToday: Bool
+    let hasActivity: Bool
+    let hasPlannedSession: Bool
+    let onTap: () -> Void
+
+    private var dayNumber: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        return formatter.string(from: date)
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 2) {
+                ZStack {
+                    if isSelected {
+                        Circle()
+                            .fill(themeManager.accentColor)
+                            .frame(width: 36, height: 36)
+                    } else if isToday {
+                        Circle()
+                            .stroke(themeManager.accentColor, lineWidth: 2)
+                            .frame(width: 36, height: 36)
+                    }
+
+                    Text(dayNumber)
+                        .font(.ecBody)
+                        .foregroundColor(textColor)
+                }
+
+                // Indicators
+                HStack(spacing: 2) {
+                    if hasActivity {
+                        Circle()
+                            .fill(themeManager.successColor)
+                            .frame(width: 5, height: 5)
+                    }
+                    if hasPlannedSession {
+                        Circle()
+                            .fill(themeManager.accentColor)
+                            .frame(width: 5, height: 5)
+                    }
+                }
+                .frame(height: 6)
+            }
+        }
+        .frame(height: 50)
+        .opacity(isCurrentMonth ? 1 : 0.3)
+    }
+
+    private var textColor: Color {
+        if isSelected {
+            return .white
+        } else if isToday {
+            return themeManager.accentColor
+        } else if !isCurrentMonth {
+            return themeManager.textTertiary
+        } else {
+            return themeManager.textPrimary
+        }
+    }
+}
+
+// MARK: - Selected Date Content
+
+struct SelectedDateContent: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    @ObservedObject var viewModel: CalendarViewModel
+    let onActivityTap: (Activity) -> Void
+    let onPlannedSessionTap: (PlannedSession) -> Void
+
+    private var dateString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE d MMMM"
+        formatter.locale = Locale(identifier: "fr_FR")
+        return formatter.string(from: viewModel.selectedDate).capitalized
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: ECSpacing.md) {
+                Text(dateString)
+                    .font(.ecLabelBold)
+                    .foregroundColor(themeManager.textPrimary)
+                    .padding(.horizontal, ECSpacing.md)
+
+                let activities = viewModel.activitiesForSelectedDate
+                let sessions = viewModel.plannedSessionsForSelectedDate
+
+                if activities.isEmpty && sessions.isEmpty {
+                    EmptyDayView()
+                } else {
+                    // Planned Sessions
+                    if !sessions.isEmpty {
+                        VStack(alignment: .leading, spacing: ECSpacing.sm) {
+                            Text("Séances planifiées")
+                                .font(.ecCaption)
+                                .foregroundColor(themeManager.textSecondary)
+                                .padding(.horizontal, ECSpacing.md)
+
+                            ForEach(sessions) { session in
+                                Button {
+                                    onPlannedSessionTap(session)
+                                } label: {
+                                    CalendarSessionCard(session: session)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    // Activities
+                    if !activities.isEmpty {
+                        VStack(alignment: .leading, spacing: ECSpacing.sm) {
+                            Text("Activités réalisées")
+                                .font(.ecCaption)
+                                .foregroundColor(themeManager.textSecondary)
+                                .padding(.horizontal, ECSpacing.md)
+
+                            ForEach(activities) { activity in
+                                Button {
+                                    onActivityTap(activity)
+                                } label: {
+                                    CalendarActivityCard(activity: activity)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.vertical, ECSpacing.sm)
+        }
+    }
+}
+
+struct EmptyDayView: View {
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        VStack(spacing: ECSpacing.sm) {
+            Image(systemName: "calendar.badge.plus")
+                .font(.system(size: 40))
+                .foregroundColor(themeManager.textTertiary)
+
+            Text("Aucune activité ce jour")
+                .font(.ecBody)
+                .foregroundColor(themeManager.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, ECSpacing.xl)
+    }
+}
+
+struct CalendarSessionCard: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    let session: PlannedSession
+
+    var body: some View {
+        HStack(spacing: ECSpacing.md) {
+            Rectangle()
+                .fill(themeManager.sportColor(for: session.discipline))
+                .frame(width: 4)
+                .cornerRadius(2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(session.displayTitle)
+                    .font(.ecLabelBold)
+                    .foregroundColor(themeManager.textPrimary)
+                    .lineLimit(1)
+
+                HStack(spacing: ECSpacing.sm) {
+                    if let duration = session.estimatedDuration {
+                        Label(duration, systemImage: "clock")
+                            .font(.ecCaption)
+                            .foregroundColor(themeManager.textSecondary)
+                    }
+
+                    if let distance = session.estimatedDistance {
+                        Label(distance, systemImage: "arrow.left.and.right")
+                            .font(.ecCaption)
+                            .foregroundColor(themeManager.textSecondary)
+                    }
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.ecCaption)
+                .foregroundColor(themeManager.textTertiary)
+        }
+        .padding(ECSpacing.md)
+        .background(themeManager.cardColor)
+        .cornerRadius(ECRadius.md)
+        .overlay(
+            RoundedRectangle(cornerRadius: ECRadius.md)
+                .stroke(themeManager.borderColor, lineWidth: 1)
+        )
+        .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
+        .padding(.horizontal, ECSpacing.md)
+    }
+}
+
+struct CalendarActivityCard: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    let activity: Activity
+
+    var body: some View {
+        HStack(spacing: ECSpacing.md) {
+            ZStack {
+                Circle()
+                    .fill(themeManager.sportColor(for: activity.discipline).opacity(0.15))
+                    .frame(width: 40, height: 40)
+
+                Image(systemName: activity.discipline.icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(themeManager.sportColor(for: activity.discipline))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(activity.displayTitle)
+                    .font(.ecLabelBold)
+                    .foregroundColor(themeManager.textPrimary)
+                    .lineLimit(1)
+
+                HStack(spacing: ECSpacing.sm) {
+                    if let duration = activity.formattedDuration {
+                        Text(duration)
+                            .font(.ecCaption)
+                            .foregroundColor(themeManager.textSecondary)
+                    }
+
+                    if let distance = activity.formattedDistance {
+                        Text(distance)
+                            .font(.ecCaption)
+                            .foregroundColor(themeManager.textSecondary)
+                    }
+                }
+            }
+
+            Spacer()
+
+            if let tss = activity.tss {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(tss)")
+                        .font(.ecLabelBold)
+                        .foregroundColor(themeManager.textPrimary)
+                    Text("TSS")
+                        .font(.ecSmall)
+                        .foregroundColor(themeManager.textSecondary)
+                }
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.ecCaption)
+                .foregroundColor(themeManager.textTertiary)
+        }
+        .padding(ECSpacing.md)
+        .background(themeManager.cardColor)
+        .cornerRadius(ECRadius.md)
+        .overlay(
+            RoundedRectangle(cornerRadius: ECRadius.md)
+                .stroke(themeManager.borderColor, lineWidth: 1)
+        )
+        .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
+        .padding(.horizontal, ECSpacing.md)
+    }
+}
+
+// MARK: - Planned Session Detail View
+
+struct PlannedSessionDetailView: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    let session: PlannedSession
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: ECSpacing.lg) {
+                    // Header
+                    VStack(spacing: ECSpacing.md) {
+                        ZStack {
+                            Circle()
+                                .fill(themeManager.sportColor(for: session.discipline).opacity(0.15))
+                                .frame(width: 80, height: 80)
+
+                            Image(systemName: session.discipline.icon)
+                                .font(.system(size: 36))
+                                .foregroundColor(themeManager.sportColor(for: session.discipline))
+                        }
+
+                        Text(session.displayTitle)
+                            .font(.ecH3)
+                            .foregroundColor(themeManager.textPrimary)
+                            .multilineTextAlignment(.center)
+
+                        if let dateValue = session.dateValue {
+                            Text(formatDate(dateValue))
+                                .font(.ecBody)
+                                .foregroundColor(themeManager.textSecondary)
+                        }
+                    }
+                    .padding(.top, ECSpacing.lg)
+
+                    // Stats
+                    HStack(spacing: 0) {
+                        if let duration = session.estimatedDuration {
+                            PlannedSessionStatItem(icon: "clock", value: duration, label: "Durée")
+                        }
+
+                        if let distance = session.estimatedDistance {
+                            PlannedSessionStatItem(icon: "arrow.left.and.right", value: distance, label: "Distance")
+                        }
+
+                        if let intensity = session.intensity {
+                            PlannedSessionStatItem(icon: "flame", value: intensity, label: "Type")
+                        }
+                    }
+                    .padding(ECSpacing.md)
+                    .background(themeManager.cardColor)
+                    .cornerRadius(ECRadius.lg)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: ECRadius.lg)
+                            .stroke(themeManager.borderColor, lineWidth: 1)
+                    )
+                    .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
+
+                    // Zone & Intensity
+                    if session.targetPace != nil || session.zone != nil {
+                        VStack(alignment: .leading, spacing: ECSpacing.md) {
+                            HStack {
+                                Image(systemName: "gauge.with.needle")
+                                    .foregroundColor(themeManager.accentColor)
+                                Text("Intensité")
+                                    .font(.ecLabelBold)
+                                    .foregroundColor(themeManager.textPrimary)
+                                Spacer()
+                            }
+
+                            HStack(spacing: ECSpacing.lg) {
+                                if let zone = session.zone {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Zone")
+                                            .font(.ecSmall)
+                                            .foregroundColor(themeManager.textSecondary)
+                                        Text(zone)
+                                            .font(.ecBodyMedium)
+                                            .foregroundColor(themeManager.textPrimary)
+                                    }
+                                }
+
+                                if let pace = session.targetPace {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Cible")
+                                            .font(.ecSmall)
+                                            .foregroundColor(themeManager.textSecondary)
+                                        Text(pace)
+                                            .font(.ecBodyMedium)
+                                            .foregroundColor(themeManager.textPrimary)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(ECSpacing.md)
+                        .background(themeManager.cardColor)
+                        .cornerRadius(ECRadius.lg)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: ECRadius.lg)
+                                .stroke(themeManager.borderColor, lineWidth: 1)
+                        )
+                        .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
+                    }
+
+                    // Description
+                    if let description = session.description, !description.isEmpty {
+                        VStack(alignment: .leading, spacing: ECSpacing.sm) {
+                            HStack {
+                                Image(systemName: "text.alignleft")
+                                    .foregroundColor(themeManager.warningColor)
+                                Text("Description")
+                                    .font(.ecLabelBold)
+                                    .foregroundColor(themeManager.textPrimary)
+                                Spacer()
+                            }
+
+                            Text(description)
+                                .font(.ecBody)
+                                .foregroundColor(themeManager.textSecondary)
+                        }
+                        .padding(ECSpacing.md)
+                        .background(themeManager.cardColor)
+                        .cornerRadius(ECRadius.lg)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: ECRadius.lg)
+                                .stroke(themeManager.borderColor, lineWidth: 1)
+                        )
+                        .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
+                    }
+
+                    // Focus
+                    if let focus = session.focus, !focus.isEmpty {
+                        VStack(alignment: .leading, spacing: ECSpacing.sm) {
+                            HStack {
+                                Image(systemName: "target")
+                                    .foregroundColor(themeManager.successColor)
+                                Text("Focus")
+                                    .font(.ecLabelBold)
+                                    .foregroundColor(themeManager.textPrimary)
+                                Spacer()
+                            }
+
+                            Text(focus)
+                                .font(.ecBody)
+                                .foregroundColor(themeManager.textSecondary)
+                        }
+                        .padding(ECSpacing.md)
+                        .background(themeManager.cardColor)
+                        .cornerRadius(ECRadius.lg)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: ECRadius.lg)
+                                .stroke(themeManager.borderColor, lineWidth: 1)
+                        )
+                        .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
+                    }
+
+                    // Educatifs
+                    if !session.educatifs.isEmpty {
+                        VStack(alignment: .leading, spacing: ECSpacing.sm) {
+                            HStack {
+                                Image(systemName: "lightbulb")
+                                    .foregroundColor(themeManager.infoColor)
+                                Text("Éducatifs")
+                                    .font(.ecLabelBold)
+                                    .foregroundColor(themeManager.textPrimary)
+                                Spacer()
+                            }
+
+                            ForEach(session.educatifs, id: \.self) { educatif in
+                                HStack(alignment: .top, spacing: ECSpacing.sm) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(themeManager.successColor)
+                                    Text(educatif)
+                                        .font(.ecBody)
+                                        .foregroundColor(themeManager.textSecondary)
+                                }
+                            }
+                        }
+                        .padding(ECSpacing.md)
+                        .background(themeManager.cardColor)
+                        .cornerRadius(ECRadius.lg)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: ECRadius.lg)
+                                .stroke(themeManager.borderColor, lineWidth: 1)
+                        )
+                        .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
+                    }
+
+                    Spacer(minLength: ECSpacing.xl)
+                }
+                .padding()
+            }
+            .background(themeManager.backgroundColor)
+            .navigationTitle("Séance planifiée")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Fermer") {
+                        dismiss()
+                    }
+                    .foregroundColor(themeManager.accentColor)
+                }
+            }
+        }
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE d MMMM yyyy"
+        formatter.locale = Locale(identifier: "fr_FR")
+        return formatter.string(from: date).capitalized
+    }
+}
+
+struct PlannedSessionStatItem: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    let icon: String
+    let value: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.ecSmall)
+                    .foregroundColor(themeManager.textTertiary)
+                Text(value)
+                    .font(.ecBodyMedium)
+                    .foregroundColor(themeManager.textPrimary)
+            }
+            Text(label)
+                .font(.ecSmall)
+                .foregroundColor(themeManager.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+#Preview {
+    CalendarView()
+        .environmentObject(AuthViewModel())
+        .environmentObject(ThemeManager.shared)
+}
