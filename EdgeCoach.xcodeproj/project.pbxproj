@@ -53,6 +53,10 @@
 		E10000000000000000000052 /* LayoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000052 /* LayoutManager.swift */; };
 		E10000000000000000000053 /* AppearanceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000053 /* AppearanceSettingsView.swift */; };
 		E10000000000000000000054 /* DashboardSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000054 /* DashboardSettingsView.swift */; };
+		E10000000000000000000056 /* Gear.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000056 /* Gear.swift */; };
+		E10000000000000000000060 /* CustomAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000060 /* CustomAnalysisService.swift */; };
+		E10000000000000000000061 /* CustomAnalysesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000061 /* CustomAnalysesSettingsView.swift */; };
+		E10000000000000000000062 /* GearDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000062 /* GearDetailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -114,6 +118,10 @@
 		E20000000000000000000053 /* AppearanceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceSettingsView.swift; sourceTree = "<group>"; };
 		E20000000000000000000054 /* DashboardSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSettingsView.swift; sourceTree = "<group>"; };
 		E20000000000000000000055 /* SessionAnalysisSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAnalysisSheet.swift; sourceTree = "<group>"; };
+		E20000000000000000000056 /* Gear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gear.swift; sourceTree = "<group>"; };
+		E20000000000000000000060 /* CustomAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomAnalysisService.swift; sourceTree = "<group>"; };
+		E20000000000000000000061 /* CustomAnalysesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomAnalysesSettingsView.swift; sourceTree = "<group>"; };
+		E20000000000000000000062 /* GearDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GearDetailView.swift; sourceTree = "<group>"; };
 		F8C0177D2ED9EBD900E7CC41 /* EdgeCoachUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EdgeCoachUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -194,6 +202,7 @@
 				E20000000000000000000009 /* Dashboard.swift */,
 				E20000000000000000000010 /* Chat.swift */,
 				E20000000000000000000045 /* SportType.swift */,
+				E20000000000000000000056 /* Gear.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -211,6 +220,7 @@
 				E20000000000000000000040 /* MetricsService.swift */,
 				E20000000000000000000041 /* EquipmentService.swift */,
 				E20000000000000000000042 /* LogbookService.swift */,
+				E20000000000000000000060 /* CustomAnalysisService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -292,6 +302,8 @@
 				E20000000000000000000043 /* ZonesView.swift */,
 				E20000000000000000000044 /* EquipmentView.swift */,
 				E20000000000000000000053 /* AppearanceSettingsView.swift */,
+				E20000000000000000000061 /* CustomAnalysesSettingsView.swift */,
+				E20000000000000000000062 /* GearDetailView.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -466,6 +478,7 @@
 				E10000000000000000000043 /* ZonesView.swift in Sources */,
 				E10000000000000000000044 /* EquipmentView.swift in Sources */,
 				E10000000000000000000045 /* SportType.swift in Sources */,
+				E10000000000000000000056 /* Gear.swift in Sources */,
 				E10000000000000000000046 /* TrainingPlanCreatorView.swift in Sources */,
 				E10000000000000000000047 /* DisciplineSessionsView.swift in Sources */,
 				E10000000000000000000055 /* SessionAnalysisSheet.swift in Sources */,
@@ -473,6 +486,9 @@
 				E10000000000000000000051 /* IconManager.swift in Sources */,
 				E10000000000000000000052 /* LayoutManager.swift in Sources */,
 				E10000000000000000000053 /* AppearanceSettingsView.swift in Sources */,
+				E10000000000000000000060 /* CustomAnalysisService.swift in Sources */,
+				E10000000000000000000061 /* CustomAnalysesSettingsView.swift in Sources */,
+				E10000000000000000000062 /* GearDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

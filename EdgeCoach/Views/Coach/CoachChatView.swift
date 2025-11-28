@@ -25,7 +25,6 @@ struct CoachChatContentView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var themeManager: ThemeManager
     @ObservedObject var viewModel: ChatViewModel
-    @State private var messageText = ""
     @FocusState private var isInputFocused: Bool
 
     var body: some View {
@@ -78,7 +77,7 @@ struct CoachChatContentView: View {
 
             // Input Bar
             ChatInputBar(
-                text: $messageText,
+                text: $viewModel.inputText,
                 isLoading: viewModel.isSending,
                 isFocused: $isInputFocused,
                 onSend: sendMessage
@@ -150,14 +149,11 @@ struct CoachChatContentView: View {
     }
 
     private func sendMessage() {
-        guard !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard let userId = authViewModel.user?.id else { return }
 
-        let text = messageText
-        messageText = ""
-
         Task {
-            await viewModel.sendMessage(text, userId: userId)
+            await viewModel.sendMessage(userId: userId)
         }
     }
 }

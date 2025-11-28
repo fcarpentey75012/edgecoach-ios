@@ -11,6 +11,7 @@ struct SessionDetailView: View {
     @Environment(\.dismiss) private var dismissView
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var authViewModel: AuthViewModel
     @State private var selectedTab: SessionTab = .resume
     @State private var showingAnalysisSheet = false
 
@@ -63,6 +64,7 @@ struct SessionDetailView: View {
                 }
             )
             .environmentObject(appState)
+            .environmentObject(authViewModel)
             .environmentObject(themeManager)
         }
     }
@@ -2391,38 +2393,111 @@ private struct EquipmentPickerSheet: View {
     let onSelect: (String?) -> Void
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var themeManager: ThemeManager
-    private var items: [EquipmentItem] { guard let equipment = equipment else { return [] }; return EquipmentService.shared.getItems(from: equipment, sport: config.sport, category: config.key).filter { $0.isActive } }
+
+    private var items: [EquipmentItem] {
+        guard let equipment = equipment else { return [] }
+        return EquipmentService.shared.getItems(from: equipment, sport: config.sport, category: config.key).filter { $0.isActive }
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: ECSpacing.sm) {
-                    Button { onSelect(nil) } label: {
-                        HStack(spacing: ECSpacing.md) {
-                            Circle().fill(themeManager.elevatedColor).frame(width: 44, height: 44).overlay(Image(systemName: "xmark.circle").font(.system(size: 20)).foregroundColor(themeManager.textTertiary))
-                            VStack(alignment: .leading, spacing: 2) { Text("Aucun").font(.ecLabel).foregroundColor(themeManager.textPrimary); Text("Ne pas enregistrer d'équipement").font(.ecCaption).foregroundColor(themeManager.textSecondary) }
-                            Spacer(); if selectedId == nil { Image(systemName: "checkmark.circle.fill").font(.system(size: 24)).foregroundColor(themeManager.accentColor) }
-                        }.padding(ECSpacing.md).background(selectedId == nil ? themeManager.accentColor.opacity(0.1) : themeManager.cardColor)
-                            .overlay(RoundedRectangle(cornerRadius: ECRadius.md).stroke(selectedId == nil ? themeManager.accentColor : Color.clear, lineWidth: 1)).cornerRadius(ECRadius.md)
-                    }
+                    noneOptionButton
                     ForEach(items) { item in
-                        Button { onSelect(item.id) } label: {
-                            HStack(spacing: ECSpacing.md) {
-                                Circle().fill(themeManager.accentColor.opacity(0.15)).frame(width: 44, height: 44).overlay(Image(systemName: config.icon).font(.system(size: 18)).foregroundColor(themeManager.accentColor))
-                                VStack(alignment: .leading, spacing: 2) { Text("\(item.brand) \(item.name)").font(.ecLabel).foregroundColor(themeManager.textPrimary); if !item.model.isEmpty { Text(item.model).font(.ecCaption).foregroundColor(themeManager.textSecondary) } }
-                                Spacer(); if selectedId == item.id { Image(systemName: "checkmark.circle.fill").font(.system(size: 24)).foregroundColor(themeManager.accentColor) }
-                            }.padding(ECSpacing.md).background(selectedId == item.id ? themeManager.accentColor.opacity(0.1) : themeManager.cardColor)
-                                .overlay(RoundedRectangle(cornerRadius: ECRadius.md).stroke(selectedId == item.id ? themeManager.accentColor : Color.clear, lineWidth: 1)).cornerRadius(ECRadius.md)
-                        }
+                        equipmentItemButton(item)
                     }
                     if items.isEmpty {
-                        VStack(spacing: ECSpacing.md) { Image(systemName: "cube").font(.system(size: 48)).foregroundColor(themeManager.textTertiary); Text("Aucun équipement").font(.ecH4).foregroundColor(themeManager.textSecondary); Text("Ajoutez votre équipement dans les paramètres du profil").font(.ecBody).foregroundColor(themeManager.textTertiary).multilineTextAlignment(.center) }.padding(.vertical, ECSpacing.xl * 2)
+                        emptyStateView
                     }
-                }.padding(ECSpacing.md)
+                }
+                .padding(ECSpacing.md)
             }
-            .background(themeManager.backgroundColor).navigationTitle("Sélectionner \(config.label.lowercased())").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button { dismiss() } label: { Image(systemName: "xmark").foregroundColor(themeManager.textPrimary) } } }
+            .background(themeManager.backgroundColor)
+            .navigationTitle("Sélectionner \(config.label.lowercased())")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark").foregroundColor(themeManager.textPrimary)
+                    }
+                }
+            }
         }
+    }
+
+    private var noneOptionButton: some View {
+        let isSelected = selectedId == nil
+        return Button { onSelect(nil) } label: {
+            HStack(spacing: ECSpacing.md) {
+                Circle()
+                    .fill(themeManager.elevatedColor)
+                    .frame(width: 44, height: 44)
+                    .overlay(
+                        Image(systemName: "xmark.circle")
+                            .font(.system(size: 20))
+                            .foregroundColor(themeManager.textTertiary)
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Aucun").font(.ecLabel).foregroundColor(themeManager.textPrimary)
+                    Text("Ne pas enregistrer d'équipement").font(.ecCaption).foregroundColor(themeManager.textSecondary)
+                }
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill").font(.system(size: 24)).foregroundColor(themeManager.accentColor)
+                }
+            }
+            .padding(ECSpacing.md)
+            .background(isSelected ? themeManager.accentColor.opacity(0.1) : themeManager.cardColor)
+            .overlay(RoundedRectangle(cornerRadius: ECRadius.md).stroke(isSelected ? themeManager.accentColor : Color.clear, lineWidth: 1))
+            .cornerRadius(ECRadius.md)
+        }
+    }
+
+    private func equipmentItemButton(_ item: EquipmentItem) -> some View {
+        let isSelected = selectedId == item.id
+        let brandName = item.brand ?? ""
+        let modelName = item.model ?? ""
+        let displayText = "\(brandName) \(item.name)".trimmingCharacters(in: .whitespaces)
+
+        return Button { onSelect(item.id) } label: {
+            HStack(spacing: ECSpacing.md) {
+                Circle()
+                    .fill(themeManager.accentColor.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                    .overlay(
+                        Image(systemName: config.icon)
+                            .font(.system(size: 18))
+                            .foregroundColor(themeManager.accentColor)
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(displayText).font(.ecLabel).foregroundColor(themeManager.textPrimary)
+                    if !modelName.isEmpty {
+                        Text(modelName).font(.ecCaption).foregroundColor(themeManager.textSecondary)
+                    }
+                }
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill").font(.system(size: 24)).foregroundColor(themeManager.accentColor)
+                }
+            }
+            .padding(ECSpacing.md)
+            .background(isSelected ? themeManager.accentColor.opacity(0.1) : themeManager.cardColor)
+            .overlay(RoundedRectangle(cornerRadius: ECRadius.md).stroke(isSelected ? themeManager.accentColor : Color.clear, lineWidth: 1))
+            .cornerRadius(ECRadius.md)
+        }
+    }
+
+    private var emptyStateView: some View {
+        VStack(spacing: ECSpacing.md) {
+            Image(systemName: "cube").font(.system(size: 48)).foregroundColor(themeManager.textTertiary)
+            Text("Aucun équipement").font(.ecH4).foregroundColor(themeManager.textSecondary)
+            Text("Ajoutez votre équipement dans les paramètres du profil")
+                .font(.ecBody)
+                .foregroundColor(themeManager.textTertiary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.vertical, ECSpacing.xl * 2)
     }
 }
 

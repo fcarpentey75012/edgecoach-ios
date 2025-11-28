@@ -63,6 +63,7 @@ struct AnalysisOption: Identifiable {
 struct SessionAnalysisSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var themeManager: ThemeManager
 
     let context: SessionContext
@@ -70,39 +71,20 @@ struct SessionAnalysisSheet: View {
 
     @State private var customQuestion: String = ""
     @State private var selectedOption: AnalysisOption?
+    @State private var customAnalyses: [CustomAnalysis] = CustomAnalysis.defaults
+    @State private var isLoadingAnalyses = true
     @FocusState private var isCustomQuestionFocused: Bool
 
-    // Options d'analyse par discipline
+    private let service = CustomAnalysisService.shared
+
+    // Options d'analyse converties depuis les analyses personnalisées
     private var analysisOptions: [AnalysisOption] {
-        switch context.discipline {
-        case .cyclisme:
-            return [
-                AnalysisOption(icon: "bolt.fill", title: "Analyse de puissance", description: "FTP, zones de puissance, distribution"),
-                AnalysisOption(icon: "heart.fill", title: "Zones cardiaques", description: "Temps dans les zones, efficacité"),
-                AnalysisOption(icon: "arrow.triangle.2.circlepath", title: "Efficacité pédalage", description: "Cadence, équilibre gauche/droite"),
-                AnalysisOption(icon: "chart.line.uptrend.xyaxis", title: "Performance globale", description: "Points forts, axes d'amélioration")
-            ]
-        case .course:
-            return [
-                AnalysisOption(icon: "speedometer", title: "Analyse des allures", description: "Vitesse, régularité, split times"),
-                AnalysisOption(icon: "heart.fill", title: "Fréquence cardiaque", description: "Zones, dérive cardiaque"),
-                AnalysisOption(icon: "figure.run", title: "Cadence de course", description: "Foulée, efficacité biomécanique"),
-                AnalysisOption(icon: "mountain.2.fill", title: "Gestion du dénivelé", description: "Performance montée/descente")
-            ]
-        case .natation:
-            return [
-                AnalysisOption(icon: "figure.pool.swim", title: "Technique de nage", description: "Efficacité, points à améliorer"),
-                AnalysisOption(icon: "timer", title: "Allures au 100m", description: "Temps de passage, régularité"),
-                AnalysisOption(icon: "waveform.path.ecg", title: "Index SWOLF", description: "Efficacité de nage"),
-                AnalysisOption(icon: "arrow.up.right", title: "Progression", description: "Comparaison avec séances précédentes")
-            ]
-        case .autre:
-            return [
-                AnalysisOption(icon: "chart.line.uptrend.xyaxis", title: "Performance globale", description: "Analyse complète de la séance"),
-                AnalysisOption(icon: "heart.fill", title: "Effort cardiaque", description: "Zones, récupération"),
-                AnalysisOption(icon: "flame.fill", title: "Dépense énergétique", description: "Calories, intensité"),
-                AnalysisOption(icon: "lightbulb.fill", title: "Conseils personnalisés", description: "Recommandations d'amélioration")
-            ]
+        customAnalyses.map { analysis in
+            AnalysisOption(
+                icon: analysis.icon,
+                title: analysis.title,
+                description: analysis.description
+            )
         }
     }
 
@@ -132,7 +114,27 @@ struct SessionAnalysisSheet: View {
                     .foregroundColor(themeManager.textSecondary)
                 }
             }
+            .task {
+                await loadCustomAnalyses()
+            }
         }
+    }
+
+    // MARK: - Load Custom Analyses
+
+    private func loadCustomAnalyses() async {
+        guard let userId = authViewModel.user?.id else {
+            isLoadingAnalyses = false
+            return
+        }
+
+        do {
+            customAnalyses = try await service.getAnalyses(for: userId)
+        } catch {
+            // En cas d'erreur, garder les valeurs par défaut
+            print("SessionAnalysisSheet: Erreur chargement analyses - \(error)")
+        }
+        isLoadingAnalyses = false
     }
 
     // MARK: - Session Header
@@ -346,5 +348,6 @@ struct AnalysisOptionCard: View {
         )
     )
     .environmentObject(AppState())
+    .environmentObject(AuthViewModel())
     .environmentObject(ThemeManager.shared)
 }

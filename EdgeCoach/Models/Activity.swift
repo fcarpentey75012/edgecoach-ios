@@ -322,8 +322,18 @@ struct Activity: Codable, Identifiable, Hashable {
     }
 
     /// Durée formatée (ex: "1:30" ou "45min")
+    /// Priorité: movingTime (temps en mouvement sans pauses) > duration
     var formattedDuration: String? {
-        guard let seconds = duration else { return nil }
+        // Utiliser le temps en mouvement si disponible (plus précis, exclut les pauses)
+        let seconds: Int
+        if let movingTime = fileDatas?.movingTime, movingTime > 0 {
+            seconds = Int(movingTime)
+        } else if let dur = duration {
+            seconds = dur
+        } else {
+            return nil
+        }
+
         let hours = seconds / 3600
         let minutes = (seconds % 3600) / 60
         if hours > 0 {
@@ -659,8 +669,10 @@ struct ActivityFileData: Decodable {
         descent = try container.decodeIfPresent(Double.self, forKey: .descent)
 
         // Vitesses - Le backend renvoie maintenant TOUJOURS en km/h
-        // Priorité: avg_speed_kmh > avg_speed (tous deux en km/h après correction backend)
-        if let speedKmh = try? container.decodeIfPresent(Double.self, forKey: .avgSpeedKmh), speedKmh > 0 {
+        // Priorité: avg_speed_moving_kmh (vitesse en mouvement, sans pauses) > avg_speed_kmh > avg_speed
+        if let speedMoving = try? container.decodeIfPresent(Double.self, forKey: .avgSpeedMovingKmh), speedMoving > 0 {
+            avgSpeed = speedMoving  // Vitesse en mouvement (excluant les pauses) - la plus précise
+        } else if let speedKmh = try? container.decodeIfPresent(Double.self, forKey: .avgSpeedKmh), speedKmh > 0 {
             avgSpeed = speedKmh
         } else if let speed = try? container.decodeIfPresent(Double.self, forKey: .avgSpeed), speed > 0 {
             avgSpeed = speed  // Déjà en km/h depuis le backend corrigé

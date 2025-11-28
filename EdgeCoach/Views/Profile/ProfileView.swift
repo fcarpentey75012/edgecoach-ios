@@ -14,6 +14,7 @@ struct ProfileView: View {
     @State private var showingAppearance = false
     @State private var showingWidgetEditor = false
     @State private var showingLogoutAlert = false
+    @State private var showingCustomAnalyses = false
 
     var body: some View {
         NavigationStack {
@@ -90,6 +91,15 @@ struct ProfileView: View {
                             subtitle: "Widgets, ordre d'affichage"
                         ) {
                             showingWidgetEditor = true
+                        }
+
+                        SettingsRow(
+                            icon: "sparkles.rectangle.stack",
+                            iconColor: themeManager.successColor,
+                            title: "Analyses rapides",
+                            subtitle: "4 analyses de session"
+                        ) {
+                            showingCustomAnalyses = true
                         }
                     }
 
@@ -198,6 +208,11 @@ struct ProfileView: View {
             .sheet(isPresented: $showingWidgetEditor) {
                 WidgetEditorView()
                     .environmentObject(themeManager)
+            }
+            .sheet(isPresented: $showingCustomAnalyses) {
+                CustomAnalysesSettingsView()
+                    .environmentObject(themeManager)
+                    .environmentObject(authViewModel)
             }
         }
     }

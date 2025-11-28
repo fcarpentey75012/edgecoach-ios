@@ -1,6 +1,7 @@
 /**
  * Écran de gestion de l'équipement
  * Interface modernisée avec cartes visuelles et filtres
+ * Utilise le modèle unifié 'Gear'
  */
 
 import SwiftUI
@@ -11,11 +12,12 @@ struct EquipmentView: View {
     @EnvironmentObject var themeManager: ThemeManager
 
     @State private var selectedSport: SportType = .cycling
-    @State private var equipment: UserEquipment = .empty
+    // Liste plate d'équipements (Gear)
+    @State private var allGear: [Gear] = []
     @State private var isLoading = true
     @State private var error: String?
     @State private var showingAddSheet = false
-    @State private var itemToDelete: (item: EquipmentItem, sport: SportType, category: EquipmentCategory)?
+    @State private var gearToDelete: Gear?
     @State private var showingDeleteAlert = false
     
     // Filter state
@@ -41,22 +43,22 @@ struct EquipmentView: View {
             .sheet(isPresented: $showingAddSheet) {
                 AddEquipmentSheet(
                     selectedSport: selectedSport,
-                    onAdd: addEquipment
+                    onAdd: addGear
                 )
                 .environmentObject(themeManager)
             }
             .alert("Supprimer l'équipement", isPresented: $showingDeleteAlert) {
                 Button("Annuler", role: .cancel) {}
                 Button("Supprimer", role: .destructive) {
-                    if let toDelete = itemToDelete {
+                    if let toDelete = gearToDelete {
                         Task {
-                            await deleteEquipment(item: toDelete.item, sport: toDelete.sport, category: toDelete.category)
+                            await deleteGear(toDelete)
                         }
                     }
                 }
             } message: {
-                if let toDelete = itemToDelete {
-                    Text("Voulez-vous vraiment supprimer \"\(toDelete.item.name)\" ?")
+                if let toDelete = gearToDelete {
+                    Text("Voulez-vous vraiment supprimer \"\(toDelete.name)\" ?")
                 }
             }
         }
@@ -135,7 +137,7 @@ struct EquipmentView: View {
         ScrollView {
             VStack(spacing: ECSpacing.lg) {
                 // Header Stats
-                EquipmentSummaryCard(equipment: equipment, themeManager: themeManager)
+                EquipmentSummaryCard(totalCount: EquipmentService.shared.getCount(from: allGear), themeManager: themeManager)
                 
                 // Sport Selector
                 SportSelectorView(selectedSport: $selectedSport, themeManager: themeManager)
@@ -152,8 +154,8 @@ struct EquipmentView: View {
                 }
                 .padding(.horizontal)
 
-                // Categories & Items
-                equipmentCategories
+                // Gear Sections by Type
+                gearSections
             }
             .padding(.vertical)
         }
@@ -161,83 +163,71 @@ struct EquipmentView: View {
             await loadEquipment()
         }
     }
-
-    private var equipmentCategories: some View {
-        VStack(spacing: ECSpacing.xl) {
-            ForEach(EquipmentCategory.categoriesFor(sport: selectedSport)) { category in
-                categorySection(category)
-            }
+    
+    // Filtrer l'équipement par sport séléctionné, puis grouper par GearType
+    private var gearSections: some View {
+        let filteredGear = allGear.filter { gear in
+            gear.primarySport == selectedSport && (showArchived || gear.status == .active)
         }
-    }
-
-    private func categorySection(_ category: EquipmentCategory) -> some View {
-        let allItems = EquipmentService.shared.getItems(from: equipment, sport: selectedSport, category: category)
-        let filteredItems = showArchived ? allItems : allItems.filter { $0.isActive }
-
-        // Hide empty sections only if we have absolutely no items (active or archived) to show
-        if filteredItems.isEmpty && !showingAddSheet { // Little hack to keep layout stable
-             // Optional: Show empty state specific to category if desired
-             // For now, we just hide the section if empty to keep it clean
-             if allItems.isEmpty {
-                 return AnyView(EmptyView())
-             }
-        }
-
-        return AnyView(
-            VStack(alignment: .leading, spacing: ECSpacing.md) {
-                // Section Header
-                HStack {
-                    Label(category.displayName, systemImage: category.icon)
-                        .font(.ecH4)
-                        .foregroundColor(themeManager.textPrimary)
-                    Spacer()
-                    Text("\(filteredItems.count)")
-                        .font(.ecCaptionBold)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(themeManager.elevatedColor)
-                        .cornerRadius(12)
-                        .foregroundColor(themeManager.textSecondary)
-                }
-                .padding(.horizontal)
-
-                if filteredItems.isEmpty {
-                    emptyCategoryView(category)
-                } else {
-                    LazyVStack(spacing: ECSpacing.sm) {
-                        ForEach(filteredItems) { item in
-                            EquipmentCard(
-                                item: item,
-                                category: category,
-                                sportColor: themeManager.sportColor(for: selectedSport.discipline),
-                                themeManager: themeManager,
-                                onDelete: {
-                                    itemToDelete = (item, selectedSport, category)
-                                    showingDeleteAlert = true
-                                }
-                            )
-                        }
+        
+        // Grouper par type
+        let groupedGear = Dictionary(grouping: filteredGear, by: { $0.type })
+        
+        // On veut afficher les sections dans un ordre logique, pas aléatoire
+        let sortedTypes = GearType.allCases.filter { groupedGear[$0] != nil }
+        
+        return VStack(spacing: ECSpacing.xl) {
+            if filteredGear.isEmpty {
+                EmptyStateView(themeManager: themeManager)
+            } else {
+                ForEach(sortedTypes) { type in
+                    if let items = groupedGear[type] {
+                        sectionForType(type, items: items)
                     }
-                    .padding(.horizontal)
                 }
             }
-        )
+        }
     }
 
-    private func emptyCategoryView(_ category: EquipmentCategory) -> some View {
-        HStack {
-            Spacer()
-            VStack(spacing: ECSpacing.sm) {
-                Image(systemName: category.icon)
-                    .font(.system(size: 30))
-                    .foregroundColor(themeManager.textTertiary)
-                    .opacity(0.5)
-                Text("Aucun \(category.displayName.lowercased())")
-                    .font(.ecCaption)
-                    .foregroundColor(themeManager.textTertiary)
+    private func sectionForType(_ type: GearType, items: [Gear]) -> some View {
+        VStack(alignment: .leading, spacing: ECSpacing.md) {
+            // Section Header
+            HStack {
+                Label(type.rawValue, systemImage: type.icon)
+                    .font(.ecH4)
+                    .foregroundColor(themeManager.textPrimary)
+                Spacer()
+                Text("\(items.count)")
+                    .font(.ecCaptionBold)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(themeManager.elevatedColor)
+                    .cornerRadius(12)
+                    .foregroundColor(themeManager.textSecondary)
             }
-            .padding(.vertical, ECSpacing.lg)
-            Spacer()
+            .padding(.horizontal)
+
+            LazyVStack(spacing: ECSpacing.sm) {
+                ForEach(items) { item in
+                    NavigationLink {
+                        GearDetailView(
+                            gear: item,
+                            onDelete: {
+                                await deleteGear(item)
+                            }
+                        )
+                        .environmentObject(themeManager)
+                    } label: {
+                        GearCard(
+                            gear: item,
+                            sportColor: themeManager.sportColor(for: selectedSport.discipline),
+                            themeManager: themeManager
+                        )
+                    }
+                    .buttonStyle(.plain) // Important pour ne pas avoir l'effet bleu par défaut
+                }
+            }
+            .padding(.horizontal)
         }
     }
 
@@ -254,7 +244,8 @@ struct EquipmentView: View {
         error = nil
 
         do {
-            equipment = try await EquipmentService.shared.getEquipment(userId: userId)
+            // On charge tout d'un coup, le filtrage est fait localement
+            allGear = try await EquipmentService.shared.getAllGear(userId: userId)
         } catch {
             self.error = error.localizedDescription
         }
@@ -262,36 +253,34 @@ struct EquipmentView: View {
         isLoading = false
     }
 
-    private func addEquipment(sport: SportType, category: EquipmentCategory, name: String, brand: String?, model: String?, year: String?, notes: String?) async {
+    private func addGear(sport: SportType, type: GearType, name: String, brand: String?, model: String?, year: String?, notes: String?) async {
         guard let userId = authViewModel.user?.id else { return }
 
+        let newGear = Gear(
+            id: "", // L'ID sera généré par le backend
+            name: name,
+            brand: brand ?? "",
+            model: model ?? "",
+            type: type,
+            primarySport: sport,
+            year: year,
+            notes: notes,
+            status: .active
+        )
+        
         do {
-            _ = try await EquipmentService.shared.addEquipment(
-                userId: userId,
-                sport: sport,
-                category: category,
-                name: name,
-                brand: brand,
-                model: model,
-                year: year,
-                notes: notes
-            )
+            _ = try await EquipmentService.shared.addGear(userId: userId, gear: newGear)
             await loadEquipment()
         } catch {
             self.error = error.localizedDescription
         }
     }
 
-    private func deleteEquipment(item: EquipmentItem, sport: SportType, category: EquipmentCategory) async {
+    private func deleteGear(_ gear: Gear) async {
         guard let userId = authViewModel.user?.id else { return }
 
         do {
-            try await EquipmentService.shared.deleteEquipment(
-                userId: userId,
-                sport: sport,
-                category: category,
-                itemId: item.id
-            )
+            try await EquipmentService.shared.deleteGear(userId: userId, gear: gear)
             await loadEquipment()
         } catch {
             self.error = error.localizedDescription
@@ -301,46 +290,58 @@ struct EquipmentView: View {
 
 // MARK: - Subviews
 
+struct EmptyStateView: View {
+    let themeManager: ThemeManager
+    
+    var body: some View {
+        VStack(spacing: ECSpacing.md) {
+            Image(systemName: "bag")
+                .font(.system(size: 40))
+                .foregroundColor(themeManager.textTertiary)
+            Text("Aucun équipement")
+                .font(.ecBody)
+                .foregroundColor(themeManager.textSecondary)
+        }
+        .padding(.vertical, ECSpacing.xl)
+        .frame(maxWidth: .infinity)
+    }
+}
+
 struct EquipmentSummaryCard: View {
-    let equipment: UserEquipment
+    let totalCount: Int
     let themeManager: ThemeManager
     
     var body: some View {
         HStack(spacing: 0) {
-            StatBox(label: "Vélos", count: equipment.cycling.bikes?.count ?? 0, icon: "bicycle", color: themeManager.sportColor(for: .cyclisme), themeManager: themeManager)
-            Divider().frame(height: 30)
-            StatBox(label: "Chaussures", count: (equipment.running.shoes?.count ?? 0) + (equipment.cycling.shoes?.count ?? 0), icon: "shoeprint.fill", color: themeManager.sportColor(for: .course), themeManager: themeManager)
-            Divider().frame(height: 30)
-            StatBox(label: "Total", count: EquipmentService.shared.getTotalCount(equipment), icon: "bag.fill", color: themeManager.accentColor, themeManager: themeManager)
+            VStack(spacing: 4) {
+                Image(systemName: "bag.fill")
+                    .foregroundColor(themeManager.accentColor)
+                    .font(.system(size: 24))
+                Text("Total")
+                    .font(.ecCaption)
+                    .foregroundColor(themeManager.textSecondary)
+            }
+            .padding(.horizontal, ECSpacing.lg)
+            
+            Divider().frame(height: 40)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(totalCount)")
+                    .font(.ecH2)
+                    .foregroundColor(themeManager.textPrimary)
+                Text("équipements actifs")
+                    .font(.ecCaption)
+                    .foregroundColor(themeManager.textTertiary)
+            }
+            .padding(.horizontal, ECSpacing.lg)
+            
+            Spacer()
         }
         .padding(.vertical, ECSpacing.md)
         .background(themeManager.cardColor)
         .cornerRadius(ECRadius.lg)
         .padding(.horizontal)
         .shadow(color: themeManager.cardShadow, radius: themeManager.cardShadowRadius, x: 0, y: 2)
-    }
-}
-
-struct StatBox: View {
-    let label: String
-    let count: Int
-    let icon: String
-    let color: Color
-    let themeManager: ThemeManager
-    
-    var body: some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .foregroundColor(color)
-                .font(.system(size: 18))
-            Text("\(count)")
-                .font(.ecH3)
-                .foregroundColor(themeManager.textPrimary)
-            Text(label)
-                .font(.ecCaption)
-                .foregroundColor(themeManager.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
     }
 }
 
@@ -393,12 +394,10 @@ struct SportSelectionPill: View {
     }
 }
 
-struct EquipmentCard: View {
-    let item: EquipmentItem
-    let category: EquipmentCategory
+struct GearCard: View {
+    let gear: Gear
     let sportColor: Color
     let themeManager: ThemeManager
-    let onDelete: () -> Void
     
     var body: some View {
         HStack(spacing: ECSpacing.md) {
@@ -408,7 +407,7 @@ struct EquipmentCard: View {
                     .fill(sportColor.opacity(0.15))
                     .frame(width: 60, height: 60)
                 
-                Image(systemName: category.icon)
+                Image(systemName: gear.type.icon)
                     .font(.title2)
                     .foregroundColor(sportColor)
             }
@@ -416,11 +415,12 @@ struct EquipmentCard: View {
             // Content
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(item.name)
+                    Text(gear.displayName)
                         .font(.ecLabelBold)
-                        .foregroundColor(item.isActive ? themeManager.textPrimary : themeManager.textSecondary)
+                        .foregroundColor(gear.status == .active ? themeManager.textPrimary : themeManager.textSecondary)
+                        .lineLimit(1)
                     
-                    if !item.isActive {
+                    if gear.status != .active {
                         Text("Archivé")
                             .font(.system(size: 9, weight: .bold))
                             .padding(.horizontal, 6)
@@ -431,25 +431,17 @@ struct EquipmentCard: View {
                     }
                 }
                 
-                Text([item.brand, item.model].filter { !$0.isEmpty }.joined(separator: " • "))
+                Text(gear.fullDescription)
                     .font(.ecBody)
                     .foregroundColor(themeManager.textSecondary)
-                
-                if !item.year.isEmpty {
-                    Text(item.year)
-                        .font(.ecCaption)
-                        .foregroundColor(themeManager.textTertiary)
-                }
+                    .lineLimit(1)
             }
             
             Spacer()
             
-            // Delete Button
-            Button(action: onDelete) {
-                Image(systemName: "trash")
-                    .foregroundColor(themeManager.textTertiary.opacity(0.6))
-                    .padding(8)
-            }
+            // Chevron pour indiquer que c'est cliquable
+            Image(systemName: "chevron.right")
+                .foregroundColor(themeManager.textTertiary.opacity(0.6))
         }
         .padding(ECSpacing.sm)
         .background(themeManager.cardColor)
@@ -459,21 +451,21 @@ struct EquipmentCard: View {
                 .stroke(themeManager.borderColor, lineWidth: 1)
         )
         .shadow(color: themeManager.cardShadow, radius: 2, x: 0, y: 1)
-        .opacity(item.isActive ? 1.0 : 0.7)
+        .opacity(gear.status == .active ? 1.0 : 0.7)
     }
 }
 
-// MARK: - Add Equipment Sheet (Refactored slightly for consistency)
+// MARK: - Add Equipment Sheet (Updated for Gear)
 
 struct AddEquipmentSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var themeManager: ThemeManager
 
     let selectedSport: SportType
-    let onAdd: (SportType, EquipmentCategory, String, String?, String?, String?, String?) async -> Void
+    let onAdd: (SportType, GearType, String, String?, String?, String?, String?) async -> Void
 
     @State private var sport: SportType
-    @State private var category: EquipmentCategory
+    @State private var type: GearType
     @State private var name = ""
     @State private var brand = ""
     @State private var model = ""
@@ -481,18 +473,20 @@ struct AddEquipmentSheet: View {
     @State private var notes = ""
     @State private var isAdding = false
 
-    init(selectedSport: SportType, onAdd: @escaping (SportType, EquipmentCategory, String, String?, String?, String?, String?) async -> Void) {
+    init(selectedSport: SportType, onAdd: @escaping (SportType, GearType, String, String?, String?, String?, String?) async -> Void) {
         self.selectedSport = selectedSport
         self.onAdd = onAdd
         _sport = State(initialValue: selectedSport)
-        _category = State(initialValue: EquipmentCategory.categoriesFor(sport: selectedSport).first ?? .accessories)
+        // Initialiser avec le premier type dispo pour le sport (logique métier)
+        // Ici on prend un défaut générique, mais l'UI le changera
+        _type = State(initialValue: .accessory)
     }
 
     var body: some View {
         NavigationStack {
             Form {
                 sportSection
-                categorySection
+                typeSection
                 infoSection
                 notesSection
             }
@@ -513,7 +507,7 @@ struct AddEquipmentSheet: View {
                             isAdding = true
                             await onAdd(
                                 sport,
-                                category,
+                                type,
                                 name,
                                 brand.isEmpty ? nil : brand,
                                 model.isEmpty ? nil : model,
@@ -540,26 +534,30 @@ struct AddEquipmentSheet: View {
                 }
             }
             .pickerStyle(.segmented)
-            .onChange(of: sport) { newSport in
-                category = EquipmentCategory.categoriesFor(sport: newSport).first ?? .accessories
-            }
         } header: {
             Text("Sport")
         }
         .listRowBackground(themeManager.cardColor)
     }
 
-    private var categorySection: some View {
+    private var typeSection: some View {
         Section {
-            Picker("Catégorie", selection: $category) {
-                ForEach(EquipmentCategory.categoriesFor(sport: sport)) { cat in
-                    Label(cat.displayName, systemImage: cat.icon).tag(cat)
+            Picker("Catégorie", selection: $type) {
+                // On filtre les types pertinents pour le sport sélectionné (Logique UI)
+                ForEach(availableTypes(for: sport)) { t in
+                    Label(t.rawValue, systemImage: t.icon).tag(t)
                 }
             }
         } header: {
             Text("Type d'équipement")
         }
         .listRowBackground(themeManager.cardColor)
+    }
+    
+    // Logique UI pour filtrer les types affichés dans le picker
+    private func availableTypes(for sport: SportType) -> [GearType] {
+        let categories = EquipmentCategory.categoriesFor(sport: sport)
+        return categories.map { GearType.from(category: $0) }
     }
 
     private var infoSection: some View {
