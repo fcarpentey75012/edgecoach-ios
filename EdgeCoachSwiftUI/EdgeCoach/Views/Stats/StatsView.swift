@@ -1,9 +1,85 @@
 /**
  * Vue Statistiques - Analyses et métriques
+ * Connectée à l'API backend /api/stats
  */
 
 import SwiftUI
 import Charts
+
+// MARK: - Stats API Response Models
+
+struct StatsAPIResponse: Codable {
+    let status: String
+    let data: StatsAPIData
+}
+
+struct StatsAPIData: Codable {
+    let period: String
+    let startDate: String
+    let endDate: String
+    let summary: StatsAPISummary
+    let byDiscipline: StatsAPIByDiscipline
+    let performanceMetrics: StatsAPIPerformanceMetrics
+    let evolution: [StatsAPIEvolutionPoint]
+
+    enum CodingKeys: String, CodingKey {
+        case period
+        case startDate = "start_date"
+        case endDate = "end_date"
+        case summary
+        case byDiscipline = "by_discipline"
+        case performanceMetrics = "performance_metrics"
+        case evolution
+    }
+}
+
+struct StatsAPISummary: Codable {
+    let totalDuration: Int
+    let totalDistance: Double
+    let totalCalories: Int
+    let sessionsCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case totalDuration = "total_duration"
+        case totalDistance = "total_distance"
+        case totalCalories = "total_calories"
+        case sessionsCount = "sessions_count"
+    }
+}
+
+struct StatsAPIByDiscipline: Codable {
+    let cyclisme: StatsAPIDisciplineData
+    let course: StatsAPIDisciplineData
+    let natation: StatsAPIDisciplineData
+}
+
+struct StatsAPIDisciplineData: Codable {
+    let duration: Int
+    let distance: Double
+    let percentage: Int
+}
+
+struct StatsAPIPerformanceMetrics: Codable {
+    let ftp: Int?
+    let maxHr: Int?
+    let vma: Double?
+    let css: String?
+
+    enum CodingKeys: String, CodingKey {
+        case ftp
+        case maxHr = "max_hr"
+        case vma
+        case css
+    }
+}
+
+struct StatsAPIEvolutionPoint: Codable {
+    let date: String
+    let duration: Int
+    let distance: Double
+}
+
+// MARK: - Stats View
 
 struct StatsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -17,6 +93,11 @@ struct StatsView: View {
                     PeriodSelector(
                         selectedPeriod: $viewModel.selectedPeriod
                     )
+
+                    // Summary Cards
+                    if let stats = viewModel.statsData {
+                        SummaryCardsView(summary: stats.summary)
+                    }
 
                     // Volume Chart
                     VolumeChartCard(viewModel: viewModel)
@@ -45,7 +126,7 @@ struct StatsView: View {
                 }
             }
             .overlay {
-                if viewModel.isLoading && viewModel.volumeData.isEmpty {
+                if viewModel.isLoading && viewModel.statsData == nil {
                     ProgressView()
                         .scaleEffect(1.5)
                 }
@@ -59,11 +140,85 @@ struct StatsView: View {
     }
 }
 
+// MARK: - Summary Cards View
+
+struct SummaryCardsView: View {
+    let summary: StatsSummaryData
+
+    var body: some View {
+        HStack(spacing: ECSpacing.md) {
+            SummaryCard(
+                icon: "clock",
+                iconColor: .ecPrimary,
+                value: formatDuration(summary.totalDuration),
+                label: "Temps"
+            )
+            SummaryCard(
+                icon: "flame",
+                iconColor: .ecError,
+                value: "\(summary.totalCalories)",
+                label: "Calories"
+            )
+            SummaryCard(
+                icon: "figure.run",
+                iconColor: .ecSuccess,
+                value: "\(summary.sessionsCount)",
+                label: "Séances"
+            )
+        }
+    }
+
+    private func formatDuration(_ seconds: Int) -> String {
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        if hours > 0 {
+            return "\(hours)h\(String(format: "%02d", minutes))"
+        }
+        return "\(minutes)min"
+    }
+}
+
+struct SummaryCard: View {
+    let icon: String
+    let iconColor: Color
+    let value: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: ECSpacing.xs) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(iconColor)
+            Text(value)
+                .font(.ecH4)
+                .foregroundColor(.ecSecondary800)
+            Text(label)
+                .font(.ecCaption)
+                .foregroundColor(.ecGray500)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, ECSpacing.md)
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+    }
+}
+
 // MARK: - Stats ViewModel
 
 @MainActor
 class StatsViewModel: ObservableObject {
-    @Published var selectedPeriod: StatsPeriod = .month
+    @Published var selectedPeriod: StatsPeriod = .month {
+        didSet {
+            if oldValue != selectedPeriod {
+                Task { [weak self] in
+                    guard let self = self, let userId = self.currentUserId else { return }
+                    await self.loadData(userId: userId)
+                }
+            }
+        }
+    }
+    @Published var statsData: StatsViewData?
     @Published var volumeData: [VolumeDataPoint] = []
     @Published var tssData: [TSSDataPoint] = []
     @Published var disciplineDistribution: [DisciplineShare] = []
@@ -71,32 +226,97 @@ class StatsViewModel: ObservableObject {
     @Published var zonesDistribution: [ZoneShare] = []
     @Published var isLoading = false
 
-    func loadData(userId: String) async {
-        isLoading = true
-        // Simuler le chargement des données
-        try? await Task.sleep(nanoseconds: 500_000_000)
+    private var currentUserId: String?
+    private let api = APIService.shared
 
-        // Données de démonstration
-        volumeData = generateVolumeData()
-        tssData = generateTSSData()
-        disciplineDistribution = [
-            DisciplineShare(discipline: .cyclisme, hours: 12.5, percentage: 55),
-            DisciplineShare(discipline: .course, hours: 6.0, percentage: 26),
-            DisciplineShare(discipline: .natation, hours: 3.5, percentage: 15),
-            DisciplineShare(discipline: .autre, hours: 1.0, percentage: 4)
-        ]
-        personalRecords = [
-            PersonalRecord(title: "FTP", value: "285 W", date: "15 Nov 2024", discipline: .cyclisme),
-            PersonalRecord(title: "VMA", value: "18.5 km/h", date: "10 Nov 2024", discipline: .course),
-            PersonalRecord(title: "CSS", value: "1:45/100m", date: "8 Nov 2024", discipline: .natation)
-        ]
-        zonesDistribution = [
-            ZoneShare(zone: 1, name: "Récupération", percentage: 15, color: .ecZone1),
-            ZoneShare(zone: 2, name: "Endurance", percentage: 45, color: .ecZone2),
-            ZoneShare(zone: 3, name: "Tempo", percentage: 20, color: .ecZone3),
-            ZoneShare(zone: 4, name: "Seuil", percentage: 12, color: .ecZone4),
-            ZoneShare(zone: 5, name: "VO2max", percentage: 8, color: .ecZone5)
-        ]
+    func loadData(userId: String) async {
+        currentUserId = userId
+        isLoading = true
+
+        #if DEBUG
+        print("📊 [StatsViewModel] Loading data for period=\(selectedPeriod.apiValue), userId=\(userId)")
+        #endif
+
+        do {
+            let params: [String: String] = [
+                "user_id": userId,
+                "period": selectedPeriod.apiValue
+            ]
+
+            let response: StatsAPIResponse = try await api.get("/stats", queryParams: params)
+            let data = response.data
+
+            #if DEBUG
+            print("📊 [StatsViewModel] Received \(data.summary.sessionsCount) sessions, \(data.summary.totalDuration)s total")
+            #endif
+
+            // Convertir en données pour la vue
+            statsData = StatsViewData(
+                period: data.period,
+                startDate: data.startDate,
+                endDate: data.endDate,
+                summary: StatsSummaryData(
+                    totalDuration: data.summary.totalDuration,
+                    totalDistance: data.summary.totalDistance,
+                    totalCalories: data.summary.totalCalories,
+                    sessionsCount: data.summary.sessionsCount
+                )
+            )
+
+            // Convertir évolution en données de graphique
+            volumeData = convertEvolutionToVolume(data.evolution)
+            tssData = generateTSSFromEvolution(data.evolution)
+
+            // Répartition par discipline
+            disciplineDistribution = [
+                DisciplineShare(
+                    discipline: .cyclisme,
+                    hours: Double(data.byDiscipline.cyclisme.duration) / 3600,
+                    percentage: data.byDiscipline.cyclisme.percentage
+                ),
+                DisciplineShare(
+                    discipline: .course,
+                    hours: Double(data.byDiscipline.course.duration) / 3600,
+                    percentage: data.byDiscipline.course.percentage
+                ),
+                DisciplineShare(
+                    discipline: .natation,
+                    hours: Double(data.byDiscipline.natation.duration) / 3600,
+                    percentage: data.byDiscipline.natation.percentage
+                )
+            ].filter { $0.percentage > 0 }
+
+            // Records depuis les métriques
+            var records: [PersonalRecord] = []
+            if let ftp = data.performanceMetrics.ftp {
+                records.append(PersonalRecord(title: "FTP", value: "\(ftp) W", date: "", discipline: .cyclisme))
+            }
+            if let vma = data.performanceMetrics.vma {
+                records.append(PersonalRecord(title: "VMA", value: String(format: "%.1f km/h", vma), date: "", discipline: .course))
+            }
+            if let css = data.performanceMetrics.css {
+                records.append(PersonalRecord(title: "CSS", value: css, date: "", discipline: .natation))
+            }
+            personalRecords = records
+
+            // Zones (statiques pour l'instant)
+            zonesDistribution = [
+                ZoneShare(zone: 1, name: "Récupération", percentage: 15, color: .ecZone1),
+                ZoneShare(zone: 2, name: "Endurance", percentage: 45, color: .ecZone2),
+                ZoneShare(zone: 3, name: "Tempo", percentage: 20, color: .ecZone3),
+                ZoneShare(zone: 4, name: "Seuil", percentage: 12, color: .ecZone4),
+                ZoneShare(zone: 5, name: "VO2max", percentage: 8, color: .ecZone5)
+            ]
+
+        } catch {
+            #if DEBUG
+            print("❌ [StatsViewModel] Error: \(error)")
+            #endif
+            // Données vides en cas d'erreur
+            statsData = nil
+            volumeData = []
+            disciplineDistribution = []
+        }
 
         isLoading = false
     }
@@ -105,42 +325,61 @@ class StatsViewModel: ObservableObject {
         await loadData(userId: userId)
     }
 
-    private func generateVolumeData() -> [VolumeDataPoint] {
-        let calendar = Calendar.current
-        var data: [VolumeDataPoint] = []
-        for i in (0..<12).reversed() {
-            if let date = calendar.date(byAdding: .weekOfYear, value: -i, to: Date()) {
-                data.append(VolumeDataPoint(
-                    date: date,
-                    hours: Double.random(in: 5...15)
-                ))
-            }
+    private func convertEvolutionToVolume(_ evolution: [StatsAPIEvolutionPoint]) -> [VolumeDataPoint] {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+
+        return evolution.compactMap { point -> VolumeDataPoint? in
+            guard let date = dateFormatter.date(from: point.date) else { return nil }
+            return VolumeDataPoint(
+                date: date,
+                hours: Double(point.duration) / 3600
+            )
         }
-        return data
     }
 
-    private func generateTSSData() -> [TSSDataPoint] {
-        let calendar = Calendar.current
-        var data: [TSSDataPoint] = []
-        for i in (0..<12).reversed() {
-            if let date = calendar.date(byAdding: .weekOfYear, value: -i, to: Date()) {
-                data.append(TSSDataPoint(
-                    date: date,
-                    tss: Int.random(in: 200...600)
-                ))
-            }
+    private func generateTSSFromEvolution(_ evolution: [StatsAPIEvolutionPoint]) -> [TSSDataPoint] {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+
+        return evolution.compactMap { point -> TSSDataPoint? in
+            guard let date = dateFormatter.date(from: point.date) else { return nil }
+            let estimatedTSS = Int(Double(point.duration) / 3600 * 60)
+            return TSSDataPoint(date: date, tss: estimatedTSS)
         }
-        return data
     }
 }
 
 // MARK: - Data Models
+
+struct StatsViewData {
+    let period: String
+    let startDate: String
+    let endDate: String
+    let summary: StatsSummaryData
+}
+
+struct StatsSummaryData {
+    let totalDuration: Int
+    let totalDistance: Double
+    let totalCalories: Int
+    let sessionsCount: Int
+}
 
 enum StatsPeriod: String, CaseIterable {
     case week = "Semaine"
     case month = "Mois"
     case quarter = "Trimestre"
     case year = "Année"
+
+    var apiValue: String {
+        switch self {
+        case .week: return "week"
+        case .month: return "month"
+        case .quarter: return "month"
+        case .year: return "year"
+        }
+    }
 }
 
 struct VolumeDataPoint: Identifiable {
@@ -210,28 +449,36 @@ struct VolumeChartCard: View {
             }
 
             if #available(iOS 16.0, *) {
-                Chart(viewModel.volumeData) { dataPoint in
-                    BarMark(
-                        x: .value("Semaine", dataPoint.date, unit: .weekOfYear),
-                        y: .value("Heures", dataPoint.hours)
-                    )
-                    .foregroundStyle(Color.ecPrimary.gradient)
-                    .cornerRadius(4)
-                }
-                .frame(height: 200)
-                .chartXAxis {
-                    AxisMarks(values: .stride(by: .weekOfYear, count: 2)) { _ in
-                        AxisGridLine()
-                        AxisValueLabel(format: .dateTime.week(), centered: true)
+                if viewModel.volumeData.isEmpty {
+                    Text("Aucune donnée pour cette période")
+                        .font(.ecCaption)
+                        .foregroundColor(.ecGray500)
+                        .frame(height: 200)
+                        .frame(maxWidth: .infinity)
+                } else {
+                    Chart(viewModel.volumeData) { dataPoint in
+                        BarMark(
+                            x: .value("Date", dataPoint.date, unit: .day),
+                            y: .value("Heures", dataPoint.hours)
+                        )
+                        .foregroundStyle(Color.ecPrimary.gradient)
+                        .cornerRadius(4)
                     }
-                }
-                .chartYAxis {
-                    AxisMarks { value in
-                        AxisGridLine()
-                        AxisValueLabel {
-                            if let hours = value.as(Double.self) {
-                                Text("\(Int(hours))h")
-                                    .font(.ecSmall)
+                    .frame(height: 200)
+                    .chartXAxis {
+                        AxisMarks { _ in
+                            AxisGridLine()
+                            AxisValueLabel(format: .dateTime.day().month(), centered: true)
+                        }
+                    }
+                    .chartYAxis {
+                        AxisMarks { value in
+                            AxisGridLine()
+                            AxisValueLabel {
+                                if let hours = value.as(Double.self) {
+                                    Text("\(Int(hours))h")
+                                        .font(.ecSmall)
+                                }
                             }
                         }
                     }
@@ -255,7 +502,7 @@ struct VolumeChartCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Moyenne/sem")
+                    Text("Moyenne/jour")
                         .font(.ecCaption)
                         .foregroundColor(.ecGray500)
                     let avg = viewModel.volumeData.isEmpty ? 0 : viewModel.volumeData.reduce(0) { $0 + $1.hours } / Double(viewModel.volumeData.count)
@@ -286,32 +533,40 @@ struct TSSChartCard: View {
             }
 
             if #available(iOS 16.0, *) {
-                Chart(viewModel.tssData) { dataPoint in
-                    LineMark(
-                        x: .value("Semaine", dataPoint.date, unit: .weekOfYear),
-                        y: .value("TSS", dataPoint.tss)
-                    )
-                    .foregroundStyle(Color.ecWarning)
-                    .interpolationMethod(.catmullRom)
-
-                    AreaMark(
-                        x: .value("Semaine", dataPoint.date, unit: .weekOfYear),
-                        y: .value("TSS", dataPoint.tss)
-                    )
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color.ecWarning.opacity(0.3), Color.ecWarning.opacity(0.05)],
-                            startPoint: .top,
-                            endPoint: .bottom
+                if viewModel.tssData.isEmpty {
+                    Text("Aucune donnée pour cette période")
+                        .font(.ecCaption)
+                        .foregroundColor(.ecGray500)
+                        .frame(height: 180)
+                        .frame(maxWidth: .infinity)
+                } else {
+                    Chart(viewModel.tssData) { dataPoint in
+                        LineMark(
+                            x: .value("Date", dataPoint.date, unit: .day),
+                            y: .value("TSS", dataPoint.tss)
                         )
-                    )
-                    .interpolationMethod(.catmullRom)
-                }
-                .frame(height: 180)
-                .chartXAxis {
-                    AxisMarks(values: .stride(by: .weekOfYear, count: 2)) { _ in
-                        AxisGridLine()
-                        AxisValueLabel(format: .dateTime.week(), centered: true)
+                        .foregroundStyle(Color.ecWarning)
+                        .interpolationMethod(.catmullRom)
+
+                        AreaMark(
+                            x: .value("Date", dataPoint.date, unit: .day),
+                            y: .value("TSS", dataPoint.tss)
+                        )
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.ecWarning.opacity(0.3), Color.ecWarning.opacity(0.05)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .interpolationMethod(.catmullRom)
+                    }
+                    .frame(height: 180)
+                    .chartXAxis {
+                        AxisMarks { _ in
+                            AxisGridLine()
+                            AxisValueLabel(format: .dateTime.day().month(), centered: true)
+                        }
                     }
                 }
             } else {
@@ -341,41 +596,49 @@ struct DisciplineDistributionCard: View {
                 Spacer()
             }
 
-            HStack(spacing: ECSpacing.lg) {
-                // Donut Chart
-                if #available(iOS 17.0, *) {
-                    Chart(viewModel.disciplineDistribution) { share in
-                        SectorMark(
-                            angle: .value("Heures", share.hours),
-                            innerRadius: .ratio(0.6),
-                            angularInset: 2
-                        )
-                        .foregroundStyle(Color.sportColor(for: share.discipline))
-                        .cornerRadius(4)
-                    }
-                    .frame(width: 120, height: 120)
-                } else {
-                    DonutChartFallback(data: viewModel.disciplineDistribution)
+            if viewModel.disciplineDistribution.isEmpty {
+                Text("Aucune donnée pour cette période")
+                    .font(.ecCaption)
+                    .foregroundColor(.ecGray500)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding()
+            } else {
+                HStack(spacing: ECSpacing.lg) {
+                    // Donut Chart
+                    if #available(iOS 17.0, *) {
+                        Chart(viewModel.disciplineDistribution) { share in
+                            SectorMark(
+                                angle: .value("Heures", share.hours),
+                                innerRadius: .ratio(0.6),
+                                angularInset: 2
+                            )
+                            .foregroundStyle(Color.sportColor(for: share.discipline))
+                            .cornerRadius(4)
+                        }
                         .frame(width: 120, height: 120)
-                }
+                    } else {
+                        DonutChartFallback(data: viewModel.disciplineDistribution)
+                            .frame(width: 120, height: 120)
+                    }
 
-                // Legend
-                VStack(alignment: .leading, spacing: ECSpacing.sm) {
-                    ForEach(viewModel.disciplineDistribution) { share in
-                        HStack(spacing: ECSpacing.sm) {
-                            Circle()
-                                .fill(Color.sportColor(for: share.discipline))
-                                .frame(width: 10, height: 10)
+                    // Legend
+                    VStack(alignment: .leading, spacing: ECSpacing.sm) {
+                        ForEach(viewModel.disciplineDistribution) { share in
+                            HStack(spacing: ECSpacing.sm) {
+                                Circle()
+                                    .fill(Color.sportColor(for: share.discipline))
+                                    .frame(width: 10, height: 10)
 
-                            Text(share.discipline.displayName)
-                                .font(.ecCaption)
-                                .foregroundColor(.ecSecondary800)
+                                Text(share.discipline.displayName)
+                                    .font(.ecCaption)
+                                    .foregroundColor(.ecSecondary800)
 
-                            Spacer()
+                                Spacer()
 
-                            Text("\(share.percentage)%")
-                                .font(.ecCaptionBold)
-                                .foregroundColor(.ecGray500)
+                                Text("\(share.percentage)%")
+                                    .font(.ecCaptionBold)
+                                    .foregroundColor(.ecGray500)
+                            }
                         }
                     }
                 }
@@ -444,9 +707,11 @@ struct PersonalRecordsCard: View {
                         Text(record.title)
                             .font(.ecLabel)
                             .foregroundColor(.ecSecondary800)
-                        Text(record.date)
-                            .font(.ecSmall)
-                            .foregroundColor(.ecGray500)
+                        if !record.date.isEmpty {
+                            Text(record.date)
+                                .font(.ecSmall)
+                                .foregroundColor(.ecGray500)
+                        }
                     }
 
                     Spacer()
