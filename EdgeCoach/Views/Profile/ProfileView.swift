@@ -12,9 +12,8 @@ struct ProfileView: View {
     @State private var showingZones = false
     @State private var showingEquipment = false
     @State private var showingAppearance = false
-    @State private var showingWidgetEditor = false
+    @State private var showingCustomization = false
     @State private var showingLogoutAlert = false
-    @State private var showingCustomAnalyses = false
 
     var body: some View {
         NavigationStack {
@@ -56,18 +55,9 @@ struct ProfileView: View {
                     SettingsSection(title: "Équipement") {
                         SettingsRow(
                             icon: "bicycle.circle",
-                            iconColor: themeManager.sportColor(for: .cyclisme),
-                            title: "Vélos",
-                            subtitle: "Gérer vos vélos"
-                        ) {
-                            showingEquipment = true
-                        }
-
-                        SettingsRow(
-                            icon: "shoe.circle",
-                            iconColor: themeManager.sportColor(for: .course),
-                            title: "Chaussures",
-                            subtitle: "Gérer vos chaussures"
+                            iconColor: themeManager.accentColor,
+                            title: "Matériel",
+                            subtitle: "Vélos, chaussures, accessoires"
                         ) {
                             showingEquipment = true
                         }
@@ -85,21 +75,12 @@ struct ProfileView: View {
                         }
 
                         SettingsRow(
-                            icon: "square.grid.2x2",
+                            icon: "slider.horizontal.3",
                             iconColor: themeManager.infoColor,
-                            title: "Personnaliser le dashboard",
-                            subtitle: "Widgets, ordre d'affichage"
+                            title: "Personnalisation",
+                            subtitle: "Dashboard, analyses rapides"
                         ) {
-                            showingWidgetEditor = true
-                        }
-
-                        SettingsRow(
-                            icon: "sparkles.rectangle.stack",
-                            iconColor: themeManager.successColor,
-                            title: "Analyses rapides",
-                            subtitle: "4 analyses de session"
-                        ) {
-                            showingCustomAnalyses = true
+                            showingCustomization = true
                         }
                     }
 
@@ -205,12 +186,13 @@ struct ProfileView: View {
                 AppearanceSettingsView()
                     .environmentObject(themeManager)
             }
-            .sheet(isPresented: $showingWidgetEditor) {
-                WidgetEditorView()
+            .sheet(isPresented: $showingCustomization) {
+                CustomizationView()
                     .environmentObject(themeManager)
+                    .environmentObject(authViewModel)
             }
-            .sheet(isPresented: $showingCustomAnalyses) {
-                CustomAnalysesSettingsView()
+            .sheet(isPresented: $showingEquipment) {
+                EquipmentView()
                     .environmentObject(themeManager)
                     .environmentObject(authViewModel)
             }

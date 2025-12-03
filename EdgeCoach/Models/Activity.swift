@@ -51,6 +51,7 @@ enum Discipline: String, Codable, CaseIterable, Identifiable {
 // MARK: - Activity Model (API Response)
 
 /// Modèle correspondant exactement à la réponse de l'API /activities/history
+/// FORMAT PIVOT: Utilise activity_id, provider, external_id pour l'identification
 struct Activity: Codable, Identifiable, Hashable {
     // Hashable conformance based on id
     func hash(into hasher: inout Hasher) {
@@ -60,99 +61,93 @@ struct Activity: Codable, Identifiable, Hashable {
     static func == (lhs: Activity, rhs: Activity) -> Bool {
         lhs.id == rhs.id
     }
-    // Identifiants
+
+    // === IDENTIFIANTS FORMAT PIVOT ===
     let id: String              // _id MongoDB
-    let nolioId: Int?           // nolio_id (peut être Int ou absent)
+    let activityId: String?     // activity_id (UUID) - NOUVEAU FORMAT PIVOT
+    let provider: String?       // Provider source: "nolio", "wahoo", "fit_file", "tcx_file", etc.
+    let externalId: String?     // ID externe du système source (ex-nolio_id, wahoo_id)
     let userId: String
 
-    // Infos de base
+    // === INFOS DE BASE ===
     let dateStart: String       // date_start (YYYY-MM-DD ou ISO)
-    let sport: String?          // Sport brut de l'API
+    let startTime: String?      // Heure de début ISO
+    let sport: String?          // Sport normalisé (cycling, running, swimming)
     let name: String?
-
-    // Métriques numériques (en nombres, pas strings)
-    let duration: Int?          // Durée en secondes
-    let distance: Double?       // Distance en km
-    let avgWatt: Double?
-    let maxWatt: Double?
-    let rpe: Int?               // Rating of Perceived Exertion
-    let feeling: Int?           // Peut être Int (0-5) ou absent
-
-    // Dénivelé
-    let elevationGain: Double?
-    let elevationLoss: Double?
-
-    // Charge d'entraînement
-    let loadFoster: Double?
-    let loadCoggan: Double?     // TSS
+    let description: String?
     let isCompetition: Bool?
-    let kilojoules: Double?
 
-    // Métriques cardio
-    let restHrUser: Double?
-    let maxHrUser: Double?
+    // === MÉTRIQUES (toutes depuis file_datas) ===
+    // Note: Les métriques sont maintenant accessibles uniquement via fileDatas
+    // Utiliser les computed properties: preferredDuration, preferredDistance, etc.
 
-    // Puissance
-    let np: Double?             // Normalized Power
-    let ftp: Double?            // FTP
-    let criticalPower: Double?  // CP
-    let weight: Double?
+    // === FEEDBACK SUBJECTIF ===
+    let rpe: Int?               // Rating of Perceived Exertion (0-10)
+    let feeling: Int?           // Ressenti (0-5)
 
-    // Zones
-    let zones: [ActivityZone]?
-
-    // Fichier et données GPS
-    let fileUrl: String?
-    let fileDatas: ActivityFileData?
-
-    // Données de séance prévue
+    // === PLANIFICATION ===
+    let plannedSessionId: String? // ID séance planifiée liée
     let plannedName: String?
-    let plannedSport: String?
     let plannedDescription: String?
 
-    // Description
-    let description: String?
-    let hourStart: String?
+    // === SOURCE FICHIER ===
+    let fileUrl: String?
+    let fileHash: String?       // Hash SHA256 pour déduplication
 
-    // Cache
+    // === DONNÉES COMPLÈTES ===
+    let fileDatas: ActivityFileData?
+
+    // === MÉTADONNÉES ===
     let cachedAt: String?
-    let cacheKey: String?
+    let createdAt: String?
+    let updatedAt: String?
+
+    // === COMPUTED PROPERTIES (compatibilité) ===
+
+    /// Discipline calculée depuis le sport
+    var discipline: Discipline {
+        Discipline.from(sport: sport)
+    }
 
     enum CodingKeys: String, CodingKey {
+        // === IDENTIFIANTS FORMAT PIVOT ===
         case id = "_id"
-        case nolioId = "nolio_id"
+        case activityId = "activity_id"
+        case provider
+        case externalId = "external_id"
         case userId = "user_id"
+
+        // === INFOS DE BASE ===
         case dateStart = "date_start"
+        case startTime = "start_time"
         case sport
         case name
-        case duration
-        case distance
-        case avgWatt = "avg_watt"
-        case maxWatt = "max_watt"
+        case description
+        case isCompetition = "is_competition"
+
+        // === MÉTRIQUES (toutes depuis file_datas) ===
+        // Les métriques sont maintenant uniquement dans file_datas
+
+        // === FEEDBACK SUBJECTIF ===
         case rpe
         case feeling
-        case elevationGain = "elevation_gain"
-        case elevationLoss = "elevation_loss"
-        case loadFoster = "load_foster"
-        case loadCoggan = "load_coggan"
-        case isCompetition = "is_competition"
-        case kilojoules
-        case restHrUser = "rest_hr_user"
-        case maxHrUser = "max_hr_user"
-        case np
-        case ftp
-        case criticalPower = "critical_power"
-        case weight
-        case zones
-        case fileUrl = "file_url"
-        case fileDatas = "file_datas"
+
+        // === PLANIFICATION ===
+        case plannedSessionId = "planned_session_id"
         case plannedName = "planned_name"
-        case plannedSport = "planned_sport"
         case plannedDescription = "planned_description"
-        case description
-        case hourStart = "hour_start"
+
+        // === SOURCE FICHIER ===
+        case fileUrl = "file_url"
+        case fileHash = "file_hash"
+
+        // === DONNÉES COMPLÈTES ===
+        case fileDatas = "file_datas"
+
+        // === MÉTADONNÉES ===
         case cachedAt = "cached_at"
-        case cacheKey = "cache_key"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
     }
 
     // MARK: - Custom Decoding
@@ -160,85 +155,42 @@ struct Activity: Codable, Identifiable, Hashable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        // ID obligatoire
+        // === IDENTIFIANTS FORMAT PIVOT ===
         id = try container.decode(String.self, forKey: .id)
+        activityId = try container.decodeIfPresent(String.self, forKey: .activityId)
+        provider = try container.decodeIfPresent(String.self, forKey: .provider)
+        externalId = try container.decodeIfPresent(String.self, forKey: .externalId)
         userId = try container.decode(String.self, forKey: .userId)
 
-        // nolio_id peut être Int ou String selon l'API
-        if let intId = try? container.decodeIfPresent(Int.self, forKey: .nolioId) {
-            nolioId = intId
-        } else if let stringId = try? container.decodeIfPresent(String.self, forKey: .nolioId),
-                  let intValue = Int(stringId) {
-            nolioId = intValue
-        } else {
-            nolioId = nil
-        }
-
-        // Date
+        // === INFOS DE BASE ===
         dateStart = try container.decode(String.self, forKey: .dateStart)
-
-        // Infos textuelles
+        startTime = try container.decodeIfPresent(String.self, forKey: .startTime)
         sport = try container.decodeIfPresent(String.self, forKey: .sport)
         name = try container.decodeIfPresent(String.self, forKey: .name)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        isCompetition = try container.decodeIfPresent(Bool.self, forKey: .isCompetition)
 
-        // Duration peut être Int ou Double
-        if let intDuration = try? container.decodeIfPresent(Int.self, forKey: .duration) {
-            duration = intDuration
-        } else if let doubleDuration = try? container.decodeIfPresent(Double.self, forKey: .duration) {
-            duration = Int(doubleDuration)
-        } else {
-            duration = nil
-        }
+        // === MÉTRIQUES ===
+        // Toutes les métriques sont maintenant dans file_datas
 
-        // Distance (toujours en Double)
-        distance = try container.decodeIfPresent(Double.self, forKey: .distance)
-
-        // Puissance
-        avgWatt = try container.decodeIfPresent(Double.self, forKey: .avgWatt)
-        maxWatt = try container.decodeIfPresent(Double.self, forKey: .maxWatt)
-
-        // RPE et feeling
+        // === FEEDBACK SUBJECTIF ===
         rpe = try container.decodeIfPresent(Int.self, forKey: .rpe)
         feeling = try container.decodeIfPresent(Int.self, forKey: .feeling)
 
-        // Dénivelé
-        elevationGain = try container.decodeIfPresent(Double.self, forKey: .elevationGain)
-        elevationLoss = try container.decodeIfPresent(Double.self, forKey: .elevationLoss)
+        // === PLANIFICATION ===
+        plannedSessionId = try container.decodeIfPresent(String.self, forKey: .plannedSessionId)
+        plannedName = try container.decodeIfPresent(String.self, forKey: .plannedName)
+        plannedDescription = try container.decodeIfPresent(String.self, forKey: .plannedDescription)
 
-        // Charge
-        loadFoster = try container.decodeIfPresent(Double.self, forKey: .loadFoster)
-        loadCoggan = try container.decodeIfPresent(Double.self, forKey: .loadCoggan)
-        isCompetition = try container.decodeIfPresent(Bool.self, forKey: .isCompetition)
-        kilojoules = try container.decodeIfPresent(Double.self, forKey: .kilojoules)
-
-        // Cardio
-        restHrUser = try container.decodeIfPresent(Double.self, forKey: .restHrUser)
-        maxHrUser = try container.decodeIfPresent(Double.self, forKey: .maxHrUser)
-
-        // Puissance avancée
-        np = try container.decodeIfPresent(Double.self, forKey: .np)
-        ftp = try container.decodeIfPresent(Double.self, forKey: .ftp)
-        criticalPower = try container.decodeIfPresent(Double.self, forKey: .criticalPower)
-        weight = try container.decodeIfPresent(Double.self, forKey: .weight)
-
-        // Zones - peut être un tableau [{zone: 1, ...}] ou un dictionnaire {power: [...], hr: [...]}
-        if let zonesArray = try? container.decodeIfPresent([ActivityZone].self, forKey: .zones) {
-            zones = zonesArray
-        } else if let zonesDict = try? container.decodeIfPresent(ZonesDict.self, forKey: .zones) {
-            // Convertir le dictionnaire en tableau de zones (prendre les zones de puissance ou HR)
-            zones = zonesDict.toActivityZones()
-        } else {
-            zones = nil
-        }
-
-        // Fichier
+        // === SOURCE FICHIER ===
         fileUrl = try container.decodeIfPresent(String.self, forKey: .fileUrl)
-        
-        // Correction pour file_datas qui peut être un String (JSON) ou un Object
+        fileHash = try container.decodeIfPresent(String.self, forKey: .fileHash)
+
+        // === DONNÉES COMPLÈTES ===
+        // file_datas peut être un String (JSON) ou un Object
         if let data = try? container.decodeIfPresent(ActivityFileData.self, forKey: .fileDatas) {
             fileDatas = data
         } else if let jsonString = try? container.decodeIfPresent(String.self, forKey: .fileDatas) {
-            // Cas où l'API renvoie une string JSON au lieu de l'objet
             if let data = jsonString.data(using: .utf8),
                let decoded = try? JSONDecoder().decode(ActivityFileData.self, from: data) {
                 fileDatas = decoded
@@ -249,64 +201,53 @@ struct Activity: Codable, Identifiable, Hashable {
             fileDatas = nil
         }
 
-        // Séance prévue
-        plannedName = try container.decodeIfPresent(String.self, forKey: .plannedName)
-        plannedSport = try container.decodeIfPresent(String.self, forKey: .plannedSport)
-        plannedDescription = try container.decodeIfPresent(String.self, forKey: .plannedDescription)
-
-        // Description
-        description = try container.decodeIfPresent(String.self, forKey: .description)
-        hourStart = try container.decodeIfPresent(String.self, forKey: .hourStart)
-
-        // Cache
+        // === MÉTADONNÉES ===
         cachedAt = try container.decodeIfPresent(String.self, forKey: .cachedAt)
-        cacheKey = try container.decodeIfPresent(String.self, forKey: .cacheKey)
+        createdAt = try container.decodeIfPresent(String.self, forKey: .createdAt)
+        updatedAt = try container.decodeIfPresent(String.self, forKey: .updatedAt)
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+
+        // === IDENTIFIANTS FORMAT PIVOT ===
         try container.encode(id, forKey: .id)
-        try container.encodeIfPresent(nolioId, forKey: .nolioId)
+        try container.encodeIfPresent(activityId, forKey: .activityId)
+        try container.encodeIfPresent(provider, forKey: .provider)
+        try container.encodeIfPresent(externalId, forKey: .externalId)
         try container.encode(userId, forKey: .userId)
+
+        // === INFOS DE BASE ===
         try container.encode(dateStart, forKey: .dateStart)
+        try container.encodeIfPresent(startTime, forKey: .startTime)
         try container.encodeIfPresent(sport, forKey: .sport)
         try container.encodeIfPresent(name, forKey: .name)
-        try container.encodeIfPresent(duration, forKey: .duration)
-        try container.encodeIfPresent(distance, forKey: .distance)
-        try container.encodeIfPresent(avgWatt, forKey: .avgWatt)
-        try container.encodeIfPresent(maxWatt, forKey: .maxWatt)
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encodeIfPresent(isCompetition, forKey: .isCompetition)
+
+        // === MÉTRIQUES ===
+        // Toutes les métriques sont dans file_datas
+
+        // === FEEDBACK SUBJECTIF ===
         try container.encodeIfPresent(rpe, forKey: .rpe)
         try container.encodeIfPresent(feeling, forKey: .feeling)
-        try container.encodeIfPresent(elevationGain, forKey: .elevationGain)
-        try container.encodeIfPresent(elevationLoss, forKey: .elevationLoss)
-        try container.encodeIfPresent(loadFoster, forKey: .loadFoster)
-        try container.encodeIfPresent(loadCoggan, forKey: .loadCoggan)
-        try container.encodeIfPresent(isCompetition, forKey: .isCompetition)
-        try container.encodeIfPresent(kilojoules, forKey: .kilojoules)
-        try container.encodeIfPresent(restHrUser, forKey: .restHrUser)
-        try container.encodeIfPresent(maxHrUser, forKey: .maxHrUser)
-        try container.encodeIfPresent(np, forKey: .np)
-        try container.encodeIfPresent(ftp, forKey: .ftp)
-        try container.encodeIfPresent(criticalPower, forKey: .criticalPower)
-        try container.encodeIfPresent(weight, forKey: .weight)
-        try container.encodeIfPresent(zones, forKey: .zones)
-        try container.encodeIfPresent(fileUrl, forKey: .fileUrl)
-        // fileDatas n'est pas encodable (Decodable seulement)
+
+        // === PLANIFICATION ===
+        try container.encodeIfPresent(plannedSessionId, forKey: .plannedSessionId)
         try container.encodeIfPresent(plannedName, forKey: .plannedName)
-        try container.encodeIfPresent(plannedSport, forKey: .plannedSport)
         try container.encodeIfPresent(plannedDescription, forKey: .plannedDescription)
-        try container.encodeIfPresent(description, forKey: .description)
-        try container.encodeIfPresent(hourStart, forKey: .hourStart)
+
+        // === SOURCE FICHIER ===
+        try container.encodeIfPresent(fileUrl, forKey: .fileUrl)
+        try container.encodeIfPresent(fileHash, forKey: .fileHash)
+
+        // === MÉTADONNÉES ===
         try container.encodeIfPresent(cachedAt, forKey: .cachedAt)
-        try container.encodeIfPresent(cacheKey, forKey: .cacheKey)
+        try container.encodeIfPresent(createdAt, forKey: .createdAt)
+        try container.encodeIfPresent(updatedAt, forKey: .updatedAt)
     }
 
     // MARK: - Computed Properties
-
-    /// Discipline dérivée du sport
-    var discipline: Discipline {
-        Discipline.from(sport: sport)
-    }
 
     /// Date parsée
     var date: Date? {
@@ -322,18 +263,22 @@ struct Activity: Codable, Identifiable, Hashable {
     }
 
     /// Durée formatée (ex: "1:30" ou "45min")
-    /// Priorité: movingTime (temps en mouvement sans pauses) > duration
+    /// Utilise uniquement fileDatas.movingTime (temps en mouvement sans pauses)
     var formattedDuration: String? {
-        // Utiliser le temps en mouvement si disponible (plus précis, exclut les pauses)
-        let seconds: Int
-        if let movingTime = fileDatas?.movingTime, movingTime > 0 {
-            seconds = Int(movingTime)
-        } else if let dur = duration {
-            seconds = dur
-        } else {
-            return nil
+        guard let movingTime = fileDatas?.movingTime, movingTime > 0 else {
+            // Fallback sur duration de fileDatas
+            guard let dur = fileDatas?.duration, dur > 0 else { return nil }
+            let seconds = Int(dur)
+            let hours = seconds / 3600
+            let minutes = (seconds % 3600) / 60
+            if hours > 0 {
+                return String(format: "%d:%02d", hours, minutes)
+            } else {
+                return "\(minutes)min"
+            }
         }
 
+        let seconds = Int(movingTime)
         let hours = seconds / 3600
         let minutes = (seconds % 3600) / 60
         if hours > 0 {
@@ -344,8 +289,9 @@ struct Activity: Codable, Identifiable, Hashable {
     }
 
     /// Distance formatée (ex: "45.5 km" ou "1500 m")
+    /// Utilise uniquement fileDatas.distance
     var formattedDistance: String? {
-        guard let dist = distance else { return nil }
+        guard let dist = fileDatas?.distance, dist > 0 else { return nil }
         if discipline == .natation {
             return String(format: "%.0f m", dist * 1000)
         }
@@ -369,16 +315,16 @@ struct Activity: Codable, Identifiable, Hashable {
         return String(format: "%.1f km/h", maxSpeed)
     }
 
-    /// Puissance moyenne formatée
+    /// Puissance moyenne formatée (file_datas uniquement - découplé de Nolio)
     var formattedAvgPower: String? {
-        guard let watts = avgWatt else { return nil }
+        guard let watts = preferredAvgPower else { return nil }
         return "\(Int(watts))W"
     }
 
-    /// TSS (Training Stress Score)
+    /// TSS (Training Stress Score) (file_datas uniquement - découplé de Nolio)
     var tss: Int? {
-        guard let load = loadCoggan else { return nil }
-        return Int(load)
+        guard let tssValue = preferredTSS else { return nil }
+        return Int(tssValue)
     }
 
     /// Titre affiché
@@ -426,43 +372,37 @@ struct Activity: Codable, Identifiable, Hashable {
 
     // MARK: - Init for Preview/Testing
 
-    init(id: String, userId: String, dateStart: String, sport: String? = nil, name: String? = nil,
-         duration: Int? = nil, distance: Double? = nil, avgWatt: Double? = nil, maxWatt: Double? = nil,
-         elevationGain: Double? = nil, elevationLoss: Double? = nil, loadCoggan: Double? = nil) {
+    init(
+        id: String,
+        userId: String,
+        dateStart: String,
+        sport: String? = nil,
+        name: String? = nil,
+        description: String? = nil,
+        fileDatas: ActivityFileData? = nil
+    ) {
         self.id = id
-        self.nolioId = nil
+        self.activityId = nil
+        self.provider = nil
+        self.externalId = nil
         self.userId = userId
         self.dateStart = dateStart
+        self.startTime = nil
         self.sport = sport
         self.name = name
-        self.duration = duration
-        self.distance = distance
-        self.avgWatt = avgWatt
-        self.maxWatt = maxWatt
+        self.description = description
+        self.isCompetition = nil
         self.rpe = nil
         self.feeling = nil
-        self.elevationGain = elevationGain
-        self.elevationLoss = elevationLoss
-        self.loadFoster = nil
-        self.loadCoggan = loadCoggan
-        self.isCompetition = nil
-        self.kilojoules = nil
-        self.restHrUser = nil
-        self.maxHrUser = nil
-        self.np = nil
-        self.ftp = nil
-        self.criticalPower = nil
-        self.weight = nil
-        self.zones = nil
-        self.fileUrl = nil
-        self.fileDatas = nil
+        self.plannedSessionId = nil
         self.plannedName = nil
-        self.plannedSport = nil
         self.plannedDescription = nil
-        self.description = nil
-        self.hourStart = nil
+        self.fileUrl = nil
+        self.fileHash = nil
+        self.fileDatas = fileDatas
         self.cachedAt = nil
-        self.cacheKey = nil
+        self.createdAt = nil
+        self.updatedAt = nil
     }
 }
 
@@ -576,6 +516,7 @@ struct ActivityFileData: Decodable {
     let laps: [ActivityLap]?
     let duration: Double?
     let movingTime: Double?          // Temps en mouvement (sans les pauses)
+    let distance: Double?            // Distance totale en km
     let ascent: Double?
     let descent: Double?
     let avgSpeed: Double?            // Vitesse moyenne EN MOUVEMENT (km/h) - c'est ce qu'on veut afficher
@@ -593,6 +534,16 @@ struct ActivityFileData: Decodable {
     let altitudeMin: Double?
     let altitudeMax: Double?
 
+    // MARK: - Power Metrics (découplage Nolio)
+    let avgPower: Double?            // Puissance moyenne (W)
+    let maxPower: Double?            // Puissance max (W)
+    let normalizedPower: Double?     // Normalized Power - NP (W)
+    let kilojoules: Double?          // Énergie totale (kJ)
+
+    // MARK: - Training Load (découplage Nolio)
+    let trainingStressScore: Double? // TSS
+    let trimp: Double?               // TRIMP (Training Impulse)
+
     enum CodingKeys: String, CodingKey {
         case records
         case recordData = "record_data"
@@ -601,6 +552,9 @@ struct ActivityFileData: Decodable {
         case duration
         case movingTime = "moving_time"
         case timerTime = "timer_time"
+        case distance
+        case distanceKm = "distance_km"
+        case totalDistance = "total_distance"
         case ascent
         case descent
         // Vitesse - plusieurs formats possibles
@@ -621,6 +575,17 @@ struct ActivityFileData: Decodable {
         case altitudeAvg = "altitude_avg"
         case altitudeMin = "altitude_min"
         case altitudeMax = "altitude_max"
+        // Power metrics
+        case avgPower = "avg_power"
+        case maxPower = "max_power"
+        case normalizedPower = "normalized_power"
+        case npCalculated = "np_calculated"
+        case kilojoules
+        case kilojoulesCalculated = "kilojoules_calculated"
+        // Training load
+        case trainingStressScore = "training_stress_score"
+        case tssDevice = "tss_device"
+        case trimp
     }
 
     init(from decoder: Decoder) throws {
@@ -665,6 +630,18 @@ struct ActivityFileData: Decodable {
             movingTime = nil
         }
 
+        // Distance - peut être sous distance, distance_km, ou total_distance (en km)
+        if let dist = try? container.decodeIfPresent(Double.self, forKey: .distance), dist > 0 {
+            distance = dist
+        } else if let dist = try? container.decodeIfPresent(Double.self, forKey: .distanceKm), dist > 0 {
+            distance = dist
+        } else if let dist = try? container.decodeIfPresent(Double.self, forKey: .totalDistance), dist > 0 {
+            // total_distance peut être en mètres, convertir en km
+            distance = dist > 1000 ? dist / 1000 : dist
+        } else {
+            distance = nil
+        }
+
         ascent = try container.decodeIfPresent(Double.self, forKey: .ascent)
         descent = try container.decodeIfPresent(Double.self, forKey: .descent)
 
@@ -705,6 +682,48 @@ struct ActivityFileData: Decodable {
         altitudeAvg = try container.decodeIfPresent(Double.self, forKey: .altitudeAvg)
         altitudeMin = try container.decodeIfPresent(Double.self, forKey: .altitudeMin)
         altitudeMax = try container.decodeIfPresent(Double.self, forKey: .altitudeMax)
+
+        // Power metrics - priorité aux valeurs calculées
+        avgPower = try container.decodeIfPresent(Double.self, forKey: .avgPower)
+        maxPower = try container.decodeIfPresent(Double.self, forKey: .maxPower)
+
+        // NP - peut être sous normalized_power ou np_calculated
+        if let np = try? container.decodeIfPresent(Double.self, forKey: .normalizedPower), np > 0 {
+            normalizedPower = np
+        } else if let np = try? container.decodeIfPresent(Double.self, forKey: .npCalculated), np > 0 {
+            normalizedPower = np
+        } else {
+            normalizedPower = nil
+        }
+
+        // Kilojoules - peut être sous kilojoules ou kilojoules_calculated
+        if let kj = try? container.decodeIfPresent(Double.self, forKey: .kilojoules), kj > 0 {
+            kilojoules = kj
+        } else if let kj = try? container.decodeIfPresent(Double.self, forKey: .kilojoulesCalculated), kj > 0 {
+            kilojoules = kj
+        } else {
+            kilojoules = nil
+        }
+
+        // TSS - peut être sous training_stress_score ou tss_device
+        if let tss = try? container.decodeIfPresent(Double.self, forKey: .trainingStressScore), tss > 0 {
+            trainingStressScore = tss
+        } else if let tss = try? container.decodeIfPresent(Double.self, forKey: .tssDevice), tss > 0 {
+            trainingStressScore = tss
+        } else {
+            trainingStressScore = nil
+        }
+
+        trimp = try container.decodeIfPresent(Double.self, forKey: .trimp)
+
+        #if DEBUG
+        if avgPower != nil || normalizedPower != nil {
+            print("⚡ Power: avg=\(avgPower ?? 0)W, NP=\(normalizedPower ?? 0)W, kJ=\(kilojoules ?? 0)")
+        }
+        if trainingStressScore != nil || trimp != nil {
+            print("📊 Load: TSS=\(trainingStressScore ?? 0), TRIMP=\(trimp ?? 0)")
+        }
+        #endif
     }
 
     // MARK: - Lap Deduplication
@@ -752,9 +771,15 @@ struct ActivityRecord: Decodable {
     let power: Double?
     let speed: Double?
     let temperature: Double?
+    
+    // Métriques Avancées Cyclisme
+    let leftRightBalance: Double? // 0-100 (ex: 50.0 = 50/50, ou format Garmin spécifique)
+    let torqueEffectiveness: Double?
+    let pedalSmoothness: Double?
 
     enum CodingKeys: String, CodingKey {
         case timestamp
+        case time  // Format backend EdgeCoach
         // Format Garmin FIT
         case positionLat = "position_lat"
         case positionLong = "position_long"
@@ -768,25 +793,68 @@ struct ActivityRecord: Decodable {
         // Autres
         case distance
         case altitude
+        case elevation  // Format backend EdgeCoach
         case enhancedAltitude = "enhanced_altitude"
         case heartRate = "heart_rate"
+        case hrValue = "hr_value"  // Format backend EdgeCoach
         case hr
         case cadence
         case power
+        case watts = "Watts"  // Format backend EdgeCoach (majuscule!)
         case speed
+        case speedCapital = "Speed"  // Format backend EdgeCoach (majuscule!)
         case enhancedSpeed = "enhanced_speed"
         case temperature
+
+        // Métriques avancées
+        case leftRightBalance = "left_right_balance"
+        case torqueEffectiveness = "torque_effectiveness"
+        case pedalSmoothness = "pedal_smoothness"
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        // Timestamp: String or Double
+        // Timestamp: Double, String numérique, ou String ISO8601
+        // Supporte: "timestamp" (FIT natif) ou "time" (backend EdgeCoach)
+        func parseTimestamp(_ stringVal: String) -> Double? {
+            // Essayer d'abord comme nombre
+            if let doubleVal = Double(stringVal) {
+                return doubleVal
+            }
+            // Sinon parser comme date ISO8601
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = formatter.date(from: stringVal) {
+                return date.timeIntervalSince1970
+            }
+            // Essayer sans fractions de secondes
+            formatter.formatOptions = [.withInternetDateTime]
+            if let date = formatter.date(from: stringVal) {
+                return date.timeIntervalSince1970
+            }
+            // Format basique sans timezone (ex: "2025-10-31T23:44:04")
+            let basicFormatter = DateFormatter()
+            basicFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+            basicFormatter.timeZone = TimeZone(identifier: "UTC")
+            if let date = basicFormatter.date(from: stringVal) {
+                return date.timeIntervalSince1970
+            }
+            // Format avec espace
+            basicFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            if let date = basicFormatter.date(from: stringVal) {
+                return date.timeIntervalSince1970
+            }
+            return nil
+        }
+
         if let doubleVal = try? container.decodeIfPresent(Double.self, forKey: .timestamp) {
             timestamp = doubleVal
-        } else if let stringVal = try? container.decodeIfPresent(String.self, forKey: .timestamp),
-                  let doubleVal = Double(stringVal) {
-            timestamp = doubleVal
+        } else if let stringVal = try? container.decodeIfPresent(String.self, forKey: .timestamp) {
+            timestamp = parseTimestamp(stringVal)
+        } else if let stringVal = try? container.decodeIfPresent(String.self, forKey: .time) {
+            // Format backend EdgeCoach: "time" comme string ISO
+            timestamp = parseTimestamp(stringVal)
         } else {
             timestamp = nil
         }
@@ -817,19 +885,23 @@ struct ActivityRecord: Decodable {
 
         distance = try container.decodeIfPresent(Double.self, forKey: .distance)
 
-        // Altitude: supporte altitude ou enhanced_altitude
+        // Altitude: supporte altitude, enhanced_altitude, ou elevation (backend EdgeCoach)
         if let val = try? container.decodeIfPresent(Double.self, forKey: .altitude) {
             altitude = val
         } else if let val = try? container.decodeIfPresent(Double.self, forKey: .enhancedAltitude) {
+            altitude = val
+        } else if let val = try? container.decodeIfPresent(Double.self, forKey: .elevation) {
             altitude = val
         } else {
             altitude = nil
         }
 
-        // Speed: supporte speed ou enhanced_speed
+        // Speed: supporte speed, enhanced_speed, ou "Speed" (backend EdgeCoach avec majuscule)
         if let val = try? container.decodeIfPresent(Double.self, forKey: .speed) {
             speed = val
         } else if let val = try? container.decodeIfPresent(Double.self, forKey: .enhancedSpeed) {
+            speed = val
+        } else if let val = try? container.decodeIfPresent(Double.self, forKey: .speedCapital) {
             speed = val
         } else {
             speed = nil
@@ -837,7 +909,7 @@ struct ActivityRecord: Decodable {
 
         temperature = try container.decodeIfPresent(Double.self, forKey: .temperature)
 
-        // Heart Rate: supporte heart_rate ou hr, et String/Int/Double
+        // Heart Rate: supporte heart_rate, hr, ou hr_value (backend EdgeCoach)
         if let doubleVal = try? container.decodeIfPresent(Double.self, forKey: .heartRate) {
             heartRate = doubleVal
         } else if let intVal = try? container.decodeIfPresent(Int.self, forKey: .heartRate) {
@@ -849,6 +921,11 @@ struct ActivityRecord: Decodable {
             heartRate = doubleVal
         } else if let intVal = try? container.decodeIfPresent(Int.self, forKey: .hr) {
             heartRate = Double(intVal)
+        } else if let intVal = try? container.decodeIfPresent(Int.self, forKey: .hrValue) {
+            // Format backend EdgeCoach: hr_value
+            heartRate = Double(intVal)
+        } else if let doubleVal = try? container.decodeIfPresent(Double.self, forKey: .hrValue) {
+            heartRate = doubleVal
         } else {
             heartRate = nil
         }
@@ -865,7 +942,7 @@ struct ActivityRecord: Decodable {
             cadence = nil
         }
 
-        // Power: String, Int or Double
+        // Power: String, Int or Double - supporte power ou "Watts" (backend EdgeCoach)
         if let doubleVal = try? container.decodeIfPresent(Double.self, forKey: .power) {
             power = doubleVal
         } else if let intVal = try? container.decodeIfPresent(Int.self, forKey: .power) {
@@ -873,9 +950,20 @@ struct ActivityRecord: Decodable {
         } else if let stringVal = try? container.decodeIfPresent(String.self, forKey: .power),
                   let doubleVal = Double(stringVal) {
             power = doubleVal
+        } else if let intVal = try? container.decodeIfPresent(Int.self, forKey: .watts) {
+            // Format backend EdgeCoach: "Watts"
+            power = Double(intVal)
+        } else if let doubleVal = try? container.decodeIfPresent(Double.self, forKey: .watts) {
+            power = doubleVal
         } else {
             power = nil
         }
+        
+        // Métriques Avancées
+        leftRightBalance = try container.decodeIfPresent(Double.self, forKey: .leftRightBalance)
+        torqueEffectiveness = try container.decodeIfPresent(Double.self, forKey: .torqueEffectiveness)
+        pedalSmoothness = try container.decodeIfPresent(Double.self, forKey: .pedalSmoothness)
+
     }
 }
 
@@ -1156,5 +1244,238 @@ struct GPSPoint: Codable, Identifiable, Equatable {
 
     static func == (lhs: GPSPoint, rhs: GPSPoint) -> Bool {
         lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
+    }
+}
+
+// MARK: - Activity Extension - Découplage Nolio -> fileDatas
+
+/**
+ * Extension pour le découplage progressif du modèle Nolio.
+ * Ces computed properties privilégient les données file_datas (enrichies depuis FIT/TCX)
+ * avec fallback sur les champs Nolio de premier niveau.
+ *
+ * Objectif: Permettre de changer de source de données sans modifier les vues.
+ */
+extension Activity {
+
+    // MARK: - Duration (file_datas uniquement - découplé de Nolio)
+
+    /// Durée depuis file_datas uniquement (movingTime = temps effectif sans pauses)
+    var preferredDuration: Int? {
+        guard let movingTime = fileDatas?.movingTime, movingTime > 0 else { return nil }
+        return Int(movingTime)
+    }
+
+    /// Durée préférée formatée
+    var preferredFormattedDuration: String {
+        guard let dur = preferredDuration else { return "--:--" }
+        let hours = dur / 3600
+        let minutes = (dur % 3600) / 60
+        let secs = dur % 60
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, secs)
+        } else {
+            return String(format: "%d:%02d", minutes, secs)
+        }
+    }
+
+    // MARK: - Distance (file_datas uniquement - découplé de Nolio)
+
+    /// Distance depuis file_datas uniquement (km)
+    var preferredDistance: Double? {
+        guard let dist = fileDatas?.distance, dist > 0 else { return nil }
+        return dist
+    }
+
+    // MARK: - Elevation (file_datas uniquement - découplé de Nolio)
+
+    /// Dénivelé positif depuis file_datas uniquement
+    var preferredElevationGain: Double? {
+        guard let ascent = fileDatas?.ascent, ascent > 0 else { return nil }
+        return ascent
+    }
+
+    /// Dénivelé négatif depuis file_datas uniquement
+    var preferredElevationLoss: Double? {
+        guard let descent = fileDatas?.descent, descent > 0 else { return nil }
+        return descent
+    }
+
+    // MARK: - Power (file_datas uniquement - découplé de Nolio)
+
+    /// Puissance moyenne depuis file_datas uniquement
+    var preferredAvgPower: Double? {
+        guard let power = fileDatas?.avgPower, power > 0 else { return nil }
+        return power
+    }
+
+    /// Puissance max depuis file_datas uniquement
+    var preferredMaxPower: Double? {
+        guard let power = fileDatas?.maxPower, power > 0 else { return nil }
+        return power
+    }
+
+    /// Puissance normalisée depuis file_datas uniquement
+    var preferredNP: Double? {
+        guard let power = fileDatas?.normalizedPower, power > 0 else { return nil }
+        return power
+    }
+
+    // MARK: - TSS / Load (file_datas uniquement - découplé de Nolio)
+
+    /// TSS depuis file_datas uniquement
+    var preferredTSS: Double? {
+        guard let tss = fileDatas?.trainingStressScore, tss > 0 else { return nil }
+        return tss
+    }
+
+    /// TSS en Int pour affichage
+    var preferredTSSInt: Int? {
+        guard let tss = preferredTSS else { return nil }
+        return Int(tss)
+    }
+
+    // MARK: - Energy (file_datas uniquement - découplé de Nolio)
+
+    /// Kilojoules depuis file_datas uniquement
+    var preferredKilojoules: Double? {
+        guard let kj = fileDatas?.kilojoules, kj > 0 else { return nil }
+        return kj
+    }
+
+    /// TRIMP depuis file_datas uniquement
+    var preferredTrimp: Double? {
+        guard let t = fileDatas?.trimp, t > 0 else { return nil }
+        return t
+    }
+
+    // MARK: - Heart Rate
+
+    /// FC moyenne préférée: fileDatas.hrAvg avec fallback
+    var preferredHrAvg: Double? {
+        if let hrAvg = fileDatas?.hrAvg, hrAvg > 0 {
+            return hrAvg
+        }
+        return nil
+    }
+
+    /// FC max préférée: fileDatas.hrMax avec fallback
+    var preferredHrMax: Double? {
+        if let hrMax = fileDatas?.hrMax, hrMax > 0 {
+            return hrMax
+        }
+        return nil
+    }
+
+    /// FC min préférée
+    var preferredHrMin: Double? {
+        fileDatas?.hrMin
+    }
+
+    // MARK: - Speed
+
+    /// Vitesse moyenne préférée (déjà calculée avec priorité dans ActivityFileData)
+    var preferredAvgSpeed: Double? {
+        fileDatas?.avgSpeed
+    }
+
+    /// Vitesse max préférée
+    var preferredMaxSpeed: Double? {
+        fileDatas?.maxSpeed
+    }
+
+    // MARK: - Altitude
+
+    /// Altitude moyenne préférée
+    var preferredAltitudeAvg: Double? {
+        fileDatas?.altitudeAvg
+    }
+
+    /// Altitude max préférée
+    var preferredAltitudeMax: Double? {
+        fileDatas?.altitudeMax
+    }
+
+    /// Altitude min préférée
+    var preferredAltitudeMin: Double? {
+        fileDatas?.altitudeMin
+    }
+
+    // MARK: - Cadence
+
+    /// Cadence moyenne préférée
+    var preferredCadenceAvg: Double? {
+        fileDatas?.cadenceAvg
+    }
+
+    /// Cadence max préférée
+    var preferredCadenceMax: Double? {
+        fileDatas?.cadenceMax
+    }
+
+    // MARK: - Calories
+
+    /// Calories préférées: fileDatas.calories
+    var preferredCalories: Double? {
+        fileDatas?.calories
+    }
+
+    // MARK: - Helper pour VAM (Vélo)
+
+    /// VAM calculée depuis données préférées (m/h)
+    var preferredVAM: Double? {
+        guard let gain = preferredElevationGain,
+              let dur = preferredDuration,
+              gain > 100 && dur > 0 else {
+            return nil
+        }
+        return (gain / Double(dur)) * 3600
+    }
+
+    // MARK: - Checks for data availability
+
+    /// Vérifie si des données file_datas existent
+    var hasFileData: Bool {
+        fileDatas != nil
+    }
+
+    /// Vérifie si des données d'élévation sont disponibles (depuis file_datas ou Nolio)
+    var hasPreferredElevationData: Bool {
+        preferredElevationGain != nil || preferredElevationLoss != nil
+    }
+
+    /// Vérifie si des données HR sont disponibles
+    var hasPreferredHRData: Bool {
+        preferredHrAvg != nil || preferredHrMax != nil
+    }
+
+    // MARK: - Compatibilité (champs supprimés - retournent nil)
+    // Ces données utilisateur ne sont plus dans Activity, elles doivent venir du profil
+
+    /// FTP (Functional Threshold Power) - supprimé, utiliser UserProfile
+    var ftp: Double? { nil }
+
+    /// Poids de l'athlète - supprimé, utiliser UserProfile
+    var weight: Double? { nil }
+
+    /// FC max de l'utilisateur - supprimé, utiliser UserProfile
+    var maxHrUser: Double? { nil }
+
+    /// Zones de puissance/FC calculées - supprimé
+    var zones: [ActivityZone]? { nil }
+
+    // MARK: - Helper Methods
+
+    /// Crée une copie de l'activité avec de nouvelles données de fichier
+    func with(fileDatas newFileDatas: ActivityFileData?) -> Activity {
+        Activity(
+            id: id,
+            userId: userId,
+            dateStart: dateStart,
+            sport: sport,
+            name: name,
+            description: description,
+            fileDatas: newFileDatas
+        )
     }
 }

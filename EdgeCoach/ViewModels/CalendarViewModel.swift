@@ -19,6 +19,10 @@ class CalendarViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var error: String?
 
+    // Cache des activités par mois pour éviter les rechargements
+    private var activitiesCache: [String: [Activity]] = [:]
+    private var plannedSessionsCache: [String: [PlannedSession]] = [:]
+
     // Navigation
     @Published var selectedActivity: Activity?
     @Published var selectedPlannedSession: PlannedSession?
@@ -38,13 +42,19 @@ class CalendarViewModel: ObservableObject {
 
     // MARK: - Load Data
 
-    func loadData(userId: String) async {
-        isLoading = true
-        error = nil
-
+    func loadData(userId: String, forceReload: Bool = false) async {
         let calendar = Calendar.current
         let year = calendar.component(.year, from: currentDate)
         let month = calendar.component(.month, from: currentDate)
+        let monthKey = "\(year)-\(month)"
+
+        // Éviter de recharger si le mois est déjà en cache
+        guard forceReload || !loadedMonths.contains(monthKey) else {
+            return
+        }
+
+        isLoading = true
+        error = nil
 
         await withTaskGroup(of: Void.self) { group in
             group.addTask {
@@ -56,6 +66,7 @@ class CalendarViewModel: ObservableObject {
             }
         }
 
+        loadedMonths.insert(monthKey)
         isLoading = false
     }
 

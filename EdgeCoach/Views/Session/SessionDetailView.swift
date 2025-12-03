@@ -14,11 +14,12 @@ struct SessionDetailView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var selectedTab: SessionTab = .resume
     @State private var showingAnalysisSheet = false
+    @State private var preferences = SessionDisplayPreferences.default
 
     // Position du bouton flottant (draggable)
     @State private var buttonPosition: CGPoint = .zero
     @State private var isDragging = false
-    @GestureState private var dragOffset: CGSize = .zero
+    @State private var dragStartPosition: CGPoint = .zero
 
     var body: some View {
         GeometryReader { geometry in
@@ -34,15 +35,15 @@ struct SessionDetailView: View {
                         // Content based on tab
                         switch selectedTab {
                         case .resume:
-                            SessionResumeContent(activity: activity)
+                            SessionResumeContent(activity: activity, preferences: preferences)
                         case .charts:
-                            SessionChartsContent(activity: activity)
+                            SessionChartsContent(activity: activity, preferences: preferences)
                         case .laps:
                             SessionLapsContent(activity: activity)
                         case .logbook:
                             SessionLogbookContent(activity: activity)
                         case .map:
-                            SessionMapContent(activity: activity)
+                            SessionMapContent(activity: activity, preferences: preferences)
                         }
                     }
                     .padding()
@@ -56,6 +57,9 @@ struct SessionDetailView: View {
         .background(themeManager.backgroundColor)
         .navigationTitle(activity.displayTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            loadPreferences()
+        }
         .sheet(isPresented: $showingAnalysisSheet) {
             SessionAnalysisSheet(
                 context: sessionContext,
@@ -72,54 +76,41 @@ struct SessionDetailView: View {
     // MARK: - Coach Floating Button (Draggable)
 
     private func coachFloatingButton(in geometry: GeometryProxy) -> some View {
-        let buttonSize: CGFloat = 52
+        let buttonSize: CGFloat = 44
         let padding: CGFloat = ECSpacing.lg
 
         // Position par défaut (bas droite)
-        let defaultX = geometry.size.width - buttonSize - padding
-        let defaultY = geometry.size.height - buttonSize - padding - geometry.safeAreaInsets.bottom
-
-        // Position actuelle
-        let currentX = buttonPosition == .zero ? defaultX : buttonPosition.x
-        let currentY = buttonPosition == .zero ? defaultY : buttonPosition.y
-
-        return Button {
-            if !isDragging {
-                showingAnalysisSheet = true
-            }
-        } label: {
-            Image(systemName: "bubble.left.and.text.bubble.right.fill")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(width: buttonSize, height: buttonSize)
-                .background(themeManager.accentColor)
-                .clipShape(Circle())
-                .shadow(color: themeManager.accentColor.opacity(0.4), radius: isDragging ? 12 : 8, x: 0, y: isDragging ? 6 : 4)
-                .scaleEffect(isDragging ? 1.1 : 1.0)
-        }
-        .position(
-            x: currentX + dragOffset.width,
-            y: currentY + dragOffset.height
+        let defaultPosition = CGPoint(
+            x: geometry.size.width - buttonSize - padding,
+            y: geometry.size.height - buttonSize - padding - geometry.safeAreaInsets.bottom
         )
-        .gesture(
-            DragGesture()
-                .updating($dragOffset) { value, state, _ in
-                    state = value.translation
-                }
-                .onChanged { _ in
-                    withAnimation(.easeInOut(duration: 0.1)) {
-                        isDragging = true
-                    }
-                }
-                .onEnded { value in
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        isDragging = false
 
-                        // Calculer la nouvelle position
-                        var newX = currentX + value.translation.width
-                        var newY = currentY + value.translation.height
+        // Initialiser la position si nécessaire
+        let currentPosition = buttonPosition == .zero ? defaultPosition : buttonPosition
 
-                        // Contraindre dans les limites de l'écran
+        return Image(systemName: "bubble.left.and.text.bubble.right.fill")
+            .font(.system(size: 18, weight: .semibold))
+            .foregroundColor(.white)
+            .frame(width: buttonSize, height: buttonSize)
+            .background(themeManager.accentColor)
+            .clipShape(Circle())
+            .shadow(color: themeManager.accentColor.opacity(isDragging ? 0.5 : 0.25), radius: isDragging ? 8 : 4, x: 0, y: 2)
+            .scaleEffect(isDragging ? 1.05 : 1.0)
+            .opacity(isDragging ? 1.0 : 0.7)
+            .position(currentPosition)
+            .gesture(
+                DragGesture(minimumDistance: 8)
+                    .onChanged { value in
+                        if !isDragging {
+                            isDragging = true
+                            dragStartPosition = buttonPosition == .zero ? defaultPosition : buttonPosition
+                        }
+
+                        // Calculer la nouvelle position directement
+                        var newX = dragStartPosition.x + value.translation.width
+                        var newY = dragStartPosition.y + value.translation.height
+
+                        // Contraindre dans les limites
                         let minX = buttonSize / 2 + padding
                         let maxX = geometry.size.width - buttonSize / 2 - padding
                         let minY = buttonSize / 2 + padding + geometry.safeAreaInsets.top
@@ -130,9 +121,16 @@ struct SessionDetailView: View {
 
                         buttonPosition = CGPoint(x: newX, y: newY)
                     }
+                    .onEnded { _ in
+                        isDragging = false
+                    }
+            )
+            .onTapGesture {
+                if !isDragging {
+                    showingAnalysisSheet = true
                 }
-        )
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isDragging)
+            }
+            .animation(.easeOut(duration: 0.15), value: isDragging)
     }
 
     // MARK: - Session Context
@@ -143,9 +141,19 @@ struct SessionDetailView: View {
             sessionDate: activity.date ?? Date(),
             discipline: activity.discipline,
             duration: activity.fileDatas?.duration,
-            distance: activity.distance.map { $0 * 1000 }, // Convertir km en mètres
+            distance: activity.preferredDistance.map { $0 * 1000 }, // Convertir km en mètres
             isCompleted: true
         )
+    }
+
+    private func loadPreferences() {
+        if let data = UserDefaults.standard.data(forKey: "sessionDisplayPreferences"),
+           let decoded = try? JSONDecoder().decode(SessionDisplayPreferences.self, from: data) {
+            preferences = decoded
+            if preferences.sectionsOrder.isEmpty {
+                preferences.sectionsOrder = SessionSectionType.allCases
+            }
+        }
     }
 }
 
@@ -232,7 +240,7 @@ struct SessionHeaderCard: View {
                     MainStatItem(value: avgPower, label: "Puiss. moy", icon: "bolt")
                 }
 
-                if let elevation = activity.elevationGain {
+                if let elevation = activity.preferredElevationGain {
                     MainStatItem(value: "\(Int(elevation)) m", label: "D+", icon: "arrow.up.right")
                 }
             }
@@ -308,58 +316,44 @@ struct SessionTabSelector: View {
 
 struct SessionResumeContent: View {
     let activity: Activity
+    let preferences: SessionDisplayPreferences
 
     var body: some View {
         VStack(spacing: ECSpacing.md) {
-            // Section Résumé rapide
-            QuickSummarySection(activity: activity)
-
-            // Section Puissance (vélo uniquement)
-            if activity.discipline == .cyclisme && hasPowerData {
-                PowerMetricsSection(activity: activity)
+            ForEach(preferences.sectionsOrder) { section in
+                sectionView(for: section)
             }
-
-            // Section Allure/Vitesse (adaptée au sport)
-            if hasSpeedData {
-                SpeedPaceSection(activity: activity)
-            }
-
-            // Section Cardio
-            if hasCardioData {
-                CardioSection(activity: activity)
-            }
-
-            // Zones Distribution
-            if let zones = activity.zones, !zones.isEmpty {
-                ZonesCard(zones: zones)
-            }
-
-            // Section Altitude
-            if hasElevationData {
-                ElevationSection(activity: activity)
-            }
-
-            // Section Cadence
-            if hasCadenceData {
-                CadenceSection(activity: activity)
-            }
-
-            // Section Performance/Charge
-            if hasPerformanceData {
-                PerformanceSection(activity: activity)
-            }
-
-            // Notes
-            if let notes = activity.notes, !notes.isEmpty {
-                NotesCard(notes: notes)
-            }
+        }
+    }
+    
+    @ViewBuilder
+    private func sectionView(for section: SessionSectionType) -> some View {
+        switch section {
+        case .summary:
+            QuickSummarySection(activity: activity, preferences: preferences)
+        case .power:
+            if hasPowerData { PowerMetricsSection(activity: activity, preferences: preferences) }
+        case .speed:
+            if hasSpeedData { SpeedPaceSection(activity: activity, preferences: preferences) }
+        case .heartRate:
+            if hasCardioData { CardioSection(activity: activity, preferences: preferences) }
+        case .zones:
+            if let zones = activity.zones, !zones.isEmpty { ZonesCard(zones: zones) }
+        case .elevation:
+            if hasElevationData { ElevationSection(activity: activity, preferences: preferences) }
+        case .cadence:
+            if hasCadenceData { CadenceSection(activity: activity, preferences: preferences) }
+        case .performance:
+            if hasPerformanceData { PerformanceSection(activity: activity, preferences: preferences) }
+        case .notes:
+            if let notes = activity.notes, !notes.isEmpty { NotesCard(notes: notes) }
         }
     }
 
     // MARK: - Data Availability Checks
 
     private var hasPowerData: Bool {
-        activity.avgWatt != nil || activity.maxWatt != nil || activity.np != nil
+        activity.preferredAvgPower != nil || activity.preferredMaxPower != nil || activity.preferredNP != nil
     }
 
     private var hasSpeedData: Bool {
@@ -371,7 +365,7 @@ struct SessionResumeContent: View {
     }
 
     private var hasElevationData: Bool {
-        activity.elevationGain != nil || activity.elevationLoss != nil ||
+        activity.preferredElevationGain != nil || activity.preferredElevationLoss != nil ||
         activity.fileDatas?.altitudeMax != nil
     }
 
@@ -380,7 +374,7 @@ struct SessionResumeContent: View {
     }
 
     private var hasPerformanceData: Bool {
-        activity.loadCoggan != nil || activity.loadFoster != nil || activity.kilojoules != nil
+        activity.preferredTSS != nil || activity.preferredTrimp != nil || activity.preferredKilojoules != nil
     }
 }
 
@@ -388,6 +382,7 @@ struct SessionResumeContent: View {
 
 private struct QuickSummarySection: View {
     let activity: Activity
+    var preferences: SessionDisplayPreferences?
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
@@ -397,7 +392,7 @@ private struct QuickSummarySection: View {
             // Grille 3 colonnes pour les métriques principales
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: ECSpacing.md) {
                 // Durée
-                if let duration = activity.duration {
+                if isMetricVisible(.duration), let duration = activity.preferredDuration {
                     QuickStatItem(
                         value: formatDuration(duration),
                         label: "Durée",
@@ -406,7 +401,7 @@ private struct QuickSummarySection: View {
                 }
 
                 // Distance
-                if let distance = activity.distance {
+                if isMetricVisible(.distance), let distance = activity.preferredDistance {
                     QuickStatItem(
                         value: formatDistance(distance, discipline: activity.discipline),
                         label: "Distance",
@@ -420,18 +415,23 @@ private struct QuickSummarySection: View {
         }
         .themedCard()
     }
+    
+    private func isMetricVisible(_ metric: SessionMetric) -> Bool {
+        guard let preferences = preferences else { return true }
+        return preferences.visibleMetrics.contains(metric)
+    }
 
     @ViewBuilder
     private var primaryMetric: some View {
         switch activity.discipline {
         case .cyclisme:
-            if let avgPower = activity.avgWatt {
+            if isMetricVisible(.power), let avgPower = activity.preferredAvgPower {
                 QuickStatItem(
                     value: "\(Int(avgPower)) W",
                     label: "Puiss. moy",
                     icon: "bolt.fill"
                 )
-            } else if let avgSpeed = activity.fileDatas?.avgSpeed {
+            } else if isMetricVisible(.speed), let avgSpeed = activity.fileDatas?.avgSpeed {
                 QuickStatItem(
                     value: String(format: "%.1f km/h", avgSpeed),
                     label: "Vit. moy",
@@ -440,7 +440,7 @@ private struct QuickSummarySection: View {
             }
 
         case .course:
-            if let avgSpeed = activity.fileDatas?.avgSpeed, avgSpeed > 0 {
+            if isMetricVisible(.pace), let avgSpeed = activity.fileDatas?.avgSpeed, avgSpeed > 0 {
                 let paceMinKm = 60.0 / avgSpeed
                 let minutes = Int(paceMinKm)
                 let seconds = Int((paceMinKm - Double(minutes)) * 60)
@@ -452,7 +452,7 @@ private struct QuickSummarySection: View {
             }
 
         case .natation:
-            if let avgSpeed = activity.fileDatas?.avgSpeed, avgSpeed > 0 {
+            if isMetricVisible(.pace), let avgSpeed = activity.fileDatas?.avgSpeed, avgSpeed > 0 {
                 // Pace per 100m
                 let pacePer100m = 6.0 / avgSpeed
                 let minutes = Int(pacePer100m)
@@ -465,7 +465,7 @@ private struct QuickSummarySection: View {
             }
 
         case .autre:
-            if let avgSpeed = activity.fileDatas?.avgSpeed {
+            if isMetricVisible(.speed), let avgSpeed = activity.fileDatas?.avgSpeed {
                 QuickStatItem(
                     value: String(format: "%.1f km/h", avgSpeed),
                     label: "Vit. moy",
@@ -500,6 +500,7 @@ private struct QuickSummarySection: View {
 
 private struct PowerMetricsSection: View {
     let activity: Activity
+    var preferences: SessionDisplayPreferences?
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
@@ -509,8 +510,8 @@ private struct PowerMetricsSection: View {
             let cyclingColor = themeManager.sportColor(for: .cyclisme)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: ECSpacing.md) {
-                // Puissance moyenne
-                if let avgPower = activity.avgWatt {
+                // Puissance moyenne (priorité file_datas)
+                if isMetricVisible(.power), let avgPower = activity.preferredAvgPower {
                     MetricCard(
                         value: "\(Int(avgPower))",
                         unit: "W",
@@ -520,8 +521,8 @@ private struct PowerMetricsSection: View {
                     )
                 }
 
-                // Puissance max
-                if let maxPower = activity.maxWatt {
+                // Puissance max (priorité file_datas)
+                if isMetricVisible(.power), let maxPower = activity.preferredMaxPower {
                     MetricCard(
                         value: "\(Int(maxPower))",
                         unit: "W",
@@ -531,8 +532,8 @@ private struct PowerMetricsSection: View {
                     )
                 }
 
-                // Normalized Power (NP)
-                if let np = activity.np {
+                // Normalized Power (NP) (priorité file_datas)
+                if isAdvancedMetricVisible(), let np = activity.preferredNP {
                     MetricCard(
                         value: "\(Int(np))",
                         unit: "W",
@@ -543,7 +544,7 @@ private struct PowerMetricsSection: View {
                 }
 
                 // Intensity Factor (IF) = NP / FTP
-                if let np = activity.np, let ftp = activity.ftp, ftp > 0 {
+                if isAdvancedMetricVisible(), let np = activity.preferredNP, let ftp = activity.ftp, ftp > 0 {
                     let intensityFactor = np / ftp
                     MetricCard(
                         value: String(format: "%.2f", intensityFactor),
@@ -555,7 +556,7 @@ private struct PowerMetricsSection: View {
                 }
 
                 // W/kg si poids disponible
-                if let avgPower = activity.avgWatt, let weight = activity.weight, weight > 0 {
+                if isAdvancedMetricVisible(), let avgPower = activity.preferredAvgPower, let weight = activity.weight, weight > 0 {
                     let wattsPerKg = avgPower / weight
                     MetricCard(
                         value: String(format: "%.2f", wattsPerKg),
@@ -567,7 +568,7 @@ private struct PowerMetricsSection: View {
                 }
 
                 // FTP de référence
-                if let ftp = activity.ftp {
+                if isAdvancedMetricVisible(), let ftp = activity.ftp {
                     MetricCard(
                         value: "\(Int(ftp))",
                         unit: "W",
@@ -579,6 +580,16 @@ private struct PowerMetricsSection: View {
             }
         }
         .themedCard()
+    }
+    
+    private func isMetricVisible(_ metric: SessionMetric) -> Bool {
+        guard let preferences = preferences else { return true }
+        return preferences.visibleMetrics.contains(metric)
+    }
+    
+    private func isAdvancedMetricVisible() -> Bool {
+        guard let preferences = preferences else { return true }
+        return preferences.showAdvancedMetrics
     }
 
     private func intensityColor(_ if_value: Double) -> Color {
@@ -595,6 +606,7 @@ private struct PowerMetricsSection: View {
 
 private struct SpeedPaceSection: View {
     let activity: Activity
+    var preferences: SessionDisplayPreferences?
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
@@ -611,7 +623,7 @@ private struct SpeedPaceSection: View {
                 switch activity.discipline {
                 case .course:
                     // Allure moyenne
-                    if let avgSpeed = activity.fileDatas?.avgSpeed, avgSpeed > 0 {
+                    if isMetricVisible(.pace), let avgSpeed = activity.fileDatas?.avgSpeed, avgSpeed > 0 {
                         let paceMinKm = 60.0 / avgSpeed
                         let minutes = Int(paceMinKm)
                         let seconds = Int((paceMinKm - Double(minutes)) * 60)
@@ -625,7 +637,7 @@ private struct SpeedPaceSection: View {
                     }
 
                     // Allure la plus rapide
-                    if let maxSpeed = activity.fileDatas?.maxSpeed, maxSpeed > 0 {
+                    if isMetricVisible(.pace), let maxSpeed = activity.fileDatas?.maxSpeed, maxSpeed > 0 {
                         let paceMinKm = 60.0 / maxSpeed
                         let minutes = Int(paceMinKm)
                         let seconds = Int((paceMinKm - Double(minutes)) * 60)
@@ -639,7 +651,7 @@ private struct SpeedPaceSection: View {
                     }
 
                     // Vitesse moyenne (km/h)
-                    if let avgSpeed = activity.fileDatas?.avgSpeed {
+                    if isMetricVisible(.speed), let avgSpeed = activity.fileDatas?.avgSpeed {
                         MetricCard(
                             value: String(format: "%.1f", avgSpeed),
                             unit: "km/h",
@@ -651,7 +663,7 @@ private struct SpeedPaceSection: View {
 
                 case .natation:
                     // Allure /100m
-                    if let avgSpeed = activity.fileDatas?.avgSpeed, avgSpeed > 0 {
+                    if isMetricVisible(.pace), let avgSpeed = activity.fileDatas?.avgSpeed, avgSpeed > 0 {
                         let pacePer100m = 6.0 / avgSpeed
                         let minutes = Int(pacePer100m)
                         let seconds = Int((pacePer100m - Double(minutes)) * 60)
@@ -665,7 +677,7 @@ private struct SpeedPaceSection: View {
                     }
 
                     // Meilleure allure
-                    if let maxSpeed = activity.fileDatas?.maxSpeed, maxSpeed > 0 {
+                    if isMetricVisible(.pace), let maxSpeed = activity.fileDatas?.maxSpeed, maxSpeed > 0 {
                         let pacePer100m = 6.0 / maxSpeed
                         let minutes = Int(pacePer100m)
                         let seconds = Int((pacePer100m - Double(minutes)) * 60)
@@ -680,7 +692,7 @@ private struct SpeedPaceSection: View {
 
                 default:
                     // Vitesse moyenne (en mouvement - sans les pauses)
-                    if let avgSpeed = activity.fileDatas?.avgSpeed {
+                    if isMetricVisible(.speed), let avgSpeed = activity.fileDatas?.avgSpeed {
                         MetricCard(
                             value: String(format: "%.1f", avgSpeed),
                             unit: "km/h",
@@ -691,7 +703,7 @@ private struct SpeedPaceSection: View {
                     }
 
                     // Vitesse max
-                    if let maxSpeed = activity.fileDatas?.maxSpeed {
+                    if isMetricVisible(.speed), let maxSpeed = activity.fileDatas?.maxSpeed {
                         MetricCard(
                             value: String(format: "%.1f", maxSpeed),
                             unit: "km/h",
@@ -705,12 +717,18 @@ private struct SpeedPaceSection: View {
         }
         .themedCard()
     }
+    
+    private func isMetricVisible(_ metric: SessionMetric) -> Bool {
+        guard let preferences = preferences else { return true }
+        return preferences.visibleMetrics.contains(metric)
+    }
 }
 
 // MARK: - Cardio Section
 
 private struct CardioSection: View {
     let activity: Activity
+    var preferences: SessionDisplayPreferences?
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
@@ -719,7 +737,7 @@ private struct CardioSection: View {
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: ECSpacing.md) {
                 // FC moyenne
-                if let hrAvg = activity.fileDatas?.hrAvg {
+                if isMetricVisible(.heartRate), let hrAvg = activity.fileDatas?.hrAvg {
                     MetricCard(
                         value: "\(Int(hrAvg))",
                         unit: "bpm",
@@ -730,7 +748,7 @@ private struct CardioSection: View {
                 }
 
                 // FC max
-                if let hrMax = activity.fileDatas?.hrMax {
+                if isMetricVisible(.heartRateMax), let hrMax = activity.fileDatas?.hrMax {
                     MetricCard(
                         value: "\(Int(hrMax))",
                         unit: "bpm",
@@ -741,7 +759,7 @@ private struct CardioSection: View {
                 }
 
                 // FC min
-                if let hrMin = activity.fileDatas?.hrMin {
+                if isMetricVisible(.heartRate), let hrMin = activity.fileDatas?.hrMin {
                     MetricCard(
                         value: "\(Int(hrMin))",
                         unit: "bpm",
@@ -753,7 +771,8 @@ private struct CardioSection: View {
             }
 
             // % de FC max si disponible
-            if let hrMax = activity.fileDatas?.hrMax,
+            if isAdvancedMetricVisible(),
+               let hrMax = activity.fileDatas?.hrMax,
                let maxHrUser = activity.maxHrUser,
                maxHrUser > 0 {
                 let hrMaxPercent = (hrMax / maxHrUser) * 100
@@ -771,12 +790,23 @@ private struct CardioSection: View {
         }
         .themedCard()
     }
+    
+    private func isMetricVisible(_ metric: SessionMetric) -> Bool {
+        guard let preferences = preferences else { return true }
+        return preferences.visibleMetrics.contains(metric)
+    }
+    
+    private func isAdvancedMetricVisible() -> Bool {
+        guard let preferences = preferences else { return true }
+        return preferences.showAdvancedMetrics
+    }
 }
 
 // MARK: - Elevation Section
 
 private struct ElevationSection: View {
     let activity: Activity
+    var preferences: SessionDisplayPreferences?
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
@@ -785,7 +815,7 @@ private struct ElevationSection: View {
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: ECSpacing.md) {
                 // D+
-                if let gain = activity.elevationGain {
+                if isMetricVisible(.elevation), let gain = activity.preferredElevationGain {
                     MetricCard(
                         value: "+\(Int(gain))",
                         unit: "m",
@@ -796,7 +826,7 @@ private struct ElevationSection: View {
                 }
 
                 // D-
-                if let loss = activity.elevationLoss {
+                if isMetricVisible(.elevation), let loss = activity.preferredElevationLoss {
                     MetricCard(
                         value: "-\(Int(loss))",
                         unit: "m",
@@ -807,7 +837,7 @@ private struct ElevationSection: View {
                 }
 
                 // Altitude max
-                if let altMax = activity.fileDatas?.altitudeMax {
+                if isAdvancedMetricVisible(), let altMax = activity.fileDatas?.altitudeMax {
                     MetricCard(
                         value: "\(Int(altMax))",
                         unit: "m",
@@ -818,7 +848,7 @@ private struct ElevationSection: View {
                 }
 
                 // Altitude min
-                if let altMin = activity.fileDatas?.altitudeMin {
+                if isAdvancedMetricVisible(), let altMin = activity.fileDatas?.altitudeMin {
                     MetricCard(
                         value: "\(Int(altMin))",
                         unit: "m",
@@ -829,7 +859,7 @@ private struct ElevationSection: View {
                 }
 
                 // Altitude moyenne
-                if let altAvg = activity.fileDatas?.altitudeAvg {
+                if isAdvancedMetricVisible(), let altAvg = activity.fileDatas?.altitudeAvg {
                     MetricCard(
                         value: "\(Int(altAvg))",
                         unit: "m",
@@ -840,11 +870,9 @@ private struct ElevationSection: View {
                 }
 
                 // VAM (Vélo: Vitesse Ascensionnelle Moyenne) si D+ significatif
-                if activity.discipline == .cyclisme,
-                   let gain = activity.elevationGain,
-                   let duration = activity.duration,
-                   gain > 100 && duration > 0 {
-                    let vam = (gain / Double(duration)) * 3600
+                if isAdvancedMetricVisible(),
+                   activity.discipline == .cyclisme,
+                   let vam = activity.preferredVAM {
                     MetricCard(
                         value: "\(Int(vam))",
                         unit: "m/h",
@@ -857,12 +885,23 @@ private struct ElevationSection: View {
         }
         .themedCard()
     }
+    
+    private func isMetricVisible(_ metric: SessionMetric) -> Bool {
+        guard let preferences = preferences else { return true }
+        return preferences.visibleMetrics.contains(metric)
+    }
+    
+    private func isAdvancedMetricVisible() -> Bool {
+        guard let preferences = preferences else { return true }
+        return preferences.showAdvancedMetrics
+    }
 }
 
 // MARK: - Cadence Section
 
 private struct CadenceSection: View {
     let activity: Activity
+    var preferences: SessionDisplayPreferences?
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
@@ -875,7 +914,7 @@ private struct CadenceSection: View {
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: ECSpacing.md) {
                 // Cadence moyenne
-                if let cadAvg = activity.fileDatas?.cadenceAvg {
+                if isMetricVisible(.cadence), let cadAvg = activity.fileDatas?.cadenceAvg {
                     let (value, unit) = formatCadence(cadAvg, discipline: activity.discipline)
                     MetricCard(
                         value: value,
@@ -887,7 +926,7 @@ private struct CadenceSection: View {
                 }
 
                 // Cadence max
-                if let cadMax = activity.fileDatas?.cadenceMax {
+                if isMetricVisible(.cadence), let cadMax = activity.fileDatas?.cadenceMax {
                     let (value, unit) = formatCadence(cadMax, discipline: activity.discipline)
                     MetricCard(
                         value: value,
@@ -900,6 +939,11 @@ private struct CadenceSection: View {
             }
         }
         .themedCard()
+    }
+    
+    private func isMetricVisible(_ metric: SessionMetric) -> Bool {
+        guard let preferences = preferences else { return true }
+        return preferences.visibleMetrics.contains(metric)
     }
 
     private func formatCadence(_ cadence: Double, discipline: Discipline) -> (String, String) {
@@ -921,6 +965,7 @@ private struct CadenceSection: View {
 
 private struct PerformanceSection: View {
     let activity: Activity
+    var preferences: SessionDisplayPreferences?
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
@@ -928,8 +973,8 @@ private struct PerformanceSection: View {
             SectionHeader(icon: "chart.line.uptrend.xyaxis", title: "Performance & Charge", color: themeManager.warningColor)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: ECSpacing.md) {
-                // TSS (Training Stress Score)
-                if let tss = activity.loadCoggan {
+                // TSS (Training Stress Score) - priorité file_datas
+                if isAdvancedMetricVisible(), let tss = activity.preferredTSS {
                     MetricCard(
                         value: "\(Int(tss))",
                         unit: "",
@@ -939,8 +984,8 @@ private struct PerformanceSection: View {
                     )
                 }
 
-                // Load Foster (TRIMP)
-                if let load = activity.loadFoster {
+                // Load Foster (TRIMP) - priorité file_datas
+                if isAdvancedMetricVisible(), let load = activity.preferredTrimp {
                     MetricCard(
                         value: "\(Int(load))",
                         unit: "",
@@ -950,8 +995,8 @@ private struct PerformanceSection: View {
                     )
                 }
 
-                // Kilojoules
-                if let kj = activity.kilojoules {
+                // Kilojoules - priorité file_datas
+                if isAdvancedMetricVisible(), let kj = activity.preferredKilojoules {
                     MetricCard(
                         value: "\(Int(kj))",
                         unit: "kJ",
@@ -962,7 +1007,7 @@ private struct PerformanceSection: View {
                 }
 
                 // Calories
-                if let cal = activity.fileDatas?.calories {
+                if isMetricVisible(.calories), let cal = activity.fileDatas?.calories {
                     MetricCard(
                         value: "\(Int(cal))",
                         unit: "kcal",
@@ -974,7 +1019,7 @@ private struct PerformanceSection: View {
             }
 
             // Description du TSS si présent
-            if let tss = activity.loadCoggan {
+            if isAdvancedMetricVisible(), let tss = activity.preferredTSS {
                 HStack {
                     Image(systemName: "info.circle")
                         .foregroundColor(themeManager.textTertiary)
@@ -986,6 +1031,16 @@ private struct PerformanceSection: View {
             }
         }
         .themedCard()
+    }
+    
+    private func isMetricVisible(_ metric: SessionMetric) -> Bool {
+        guard let preferences = preferences else { return true }
+        return preferences.visibleMetrics.contains(metric)
+    }
+    
+    private func isAdvancedMetricVisible() -> Bool {
+        guard let preferences = preferences else { return true }
+        return preferences.showAdvancedMetrics
     }
 
     private func tssColor(_ tss: Int) -> Color {
@@ -1171,220 +1226,13 @@ struct NotesCard: View {
 
 struct SessionChartsContent: View {
     let activity: Activity
+    let preferences: SessionDisplayPreferences
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
-        VStack(spacing: ECSpacing.md) {
-            // Heart Rate Chart
-            if activity.fileDatas?.hrAvg != nil {
-                ChartCard(title: "Fréquence cardiaque", icon: "heart.fill", iconColor: themeManager.errorColor) {
-                    HeartRateChartView(activity: activity)
-                }
-            }
-
-            // Power Chart
-            if activity.avgWatt != nil {
-                ChartCard(title: "Puissance", icon: "bolt.fill", iconColor: themeManager.warningColor) {
-                    PowerChartView(activity: activity)
-                }
-            }
-
-            // Elevation Chart
-            if activity.elevationGain != nil {
-                ChartCard(title: "Altitude", icon: "mountain.2.fill", iconColor: themeManager.successColor) {
-                    ElevationChartView(activity: activity)
-                }
-            }
-
-            // Speed Chart
-            ChartCard(title: "Vitesse", icon: "speedometer", iconColor: themeManager.infoColor) {
-                SpeedChartView(activity: activity)
-            }
-        }
+        AdvancedChartsView(activity: activity)
+            .padding(.horizontal, ECSpacing.xs)
     }
-}
-
-struct ChartCard<Content: View>: View {
-    let title: String
-    let icon: String
-    let iconColor: Color
-    @ViewBuilder let content: Content
-    @EnvironmentObject var themeManager: ThemeManager
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: ECSpacing.md) {
-            HStack {
-                Image(systemName: icon)
-                    .foregroundColor(iconColor)
-                Text(title)
-                    .font(.ecLabelBold)
-                    .foregroundColor(themeManager.textPrimary)
-                Spacer()
-            }
-
-            content
-        }
-        .themedCard()
-    }
-}
-
-// Placeholder Chart Views (using Swift Charts)
-struct HeartRateChartView: View {
-    let activity: Activity
-    @EnvironmentObject var themeManager: ThemeManager
-
-    var body: some View {
-        if #available(iOS 16.0, *) {
-            // Generate sample data for demo
-            let data = generateSampleData()
-            Chart(data) { point in
-                LineMark(
-                    x: .value("Time", point.time),
-                    y: .value("HR", point.value)
-                )
-                .foregroundStyle(themeManager.errorColor)
-                .interpolationMethod(.catmullRom)
-            }
-            .frame(height: 150)
-            .chartYAxis {
-                AxisMarks { value in
-                    AxisGridLine()
-                    AxisValueLabel {
-                        if let hr = value.as(Int.self) {
-                            Text("\(hr)")
-                                .font(.ecSmall)
-                        }
-                    }
-                }
-            }
-        } else {
-            Text("iOS 16+ requis")
-                .frame(height: 150)
-        }
-    }
-
-    private func generateSampleData() -> [ChartDataPoint] {
-        (0..<60).map { i in
-            ChartDataPoint(
-                time: Double(i),
-                value: Double.random(in: 120...180)
-            )
-        }
-    }
-}
-
-struct PowerChartView: View {
-    let activity: Activity
-    @EnvironmentObject var themeManager: ThemeManager
-
-    var body: some View {
-        if #available(iOS 16.0, *) {
-            let data = generateSampleData()
-            Chart(data) { point in
-                LineMark(
-                    x: .value("Time", point.time),
-                    y: .value("Power", point.value)
-                )
-                .foregroundStyle(themeManager.warningColor)
-                .interpolationMethod(.catmullRom)
-            }
-            .frame(height: 150)
-        } else {
-            Text("iOS 16+ requis")
-                .frame(height: 150)
-        }
-    }
-
-    private func generateSampleData() -> [ChartDataPoint] {
-        (0..<60).map { i in
-            ChartDataPoint(
-                time: Double(i),
-                value: Double.random(in: 150...350)
-            )
-        }
-    }
-}
-
-struct ElevationChartView: View {
-    let activity: Activity
-    @EnvironmentObject var themeManager: ThemeManager
-
-    var body: some View {
-        if #available(iOS 16.0, *) {
-            let data = generateSampleData()
-            Chart(data) { point in
-                AreaMark(
-                    x: .value("Time", point.time),
-                    y: .value("Elevation", point.value)
-                )
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [themeManager.successColor.opacity(0.5), themeManager.successColor.opacity(0.1)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .interpolationMethod(.catmullRom)
-
-                LineMark(
-                    x: .value("Time", point.time),
-                    y: .value("Elevation", point.value)
-                )
-                .foregroundStyle(themeManager.successColor)
-                .interpolationMethod(.catmullRom)
-            }
-            .frame(height: 150)
-        } else {
-            Text("iOS 16+ requis")
-                .frame(height: 150)
-        }
-    }
-
-    private func generateSampleData() -> [ChartDataPoint] {
-        var elevation = 200.0
-        return (0..<60).map { i in
-            elevation += Double.random(in: -5...8)
-            return ChartDataPoint(time: Double(i), value: elevation)
-        }
-    }
-}
-
-struct SpeedChartView: View {
-    let activity: Activity
-    @EnvironmentObject var themeManager: ThemeManager
-
-    var body: some View {
-        if #available(iOS 16.0, *) {
-            let data = generateSampleData()
-            Chart(data) { point in
-                LineMark(
-                    x: .value("Time", point.time),
-                    y: .value("Speed", point.value)
-                )
-                .foregroundStyle(themeManager.infoColor)
-                .interpolationMethod(.catmullRom)
-            }
-            .frame(height: 150)
-        } else {
-            Text("iOS 16+ requis")
-                .frame(height: 150)
-        }
-    }
-
-    private func generateSampleData() -> [ChartDataPoint] {
-        (0..<60).map { i in
-            ChartDataPoint(
-                time: Double(i),
-                value: Double.random(in: 25...40)
-            )
-        }
-    }
-}
-
-struct ChartDataPoint: Identifiable {
-    let id = UUID()
-    let time: Double
-    let value: Double
 }
 
 // MARK: - Laps Content
@@ -1398,6 +1246,11 @@ struct SessionLapsContent: View {
     @State private var errorMessage: String?
     @State private var selectedLap: ActivityLap?
     @State private var selectedLapIndex: Int?
+
+    // Métriques max pour l'échelle relative
+    private var maxLapPower: Double { laps?.compactMap { $0.avgPower }.max() ?? 1 }
+    private var maxLapHR: Double { laps?.compactMap { $0.avgHeartRate }.max() ?? 1 }
+    private var maxLapSpeed: Double { laps?.compactMap { $0.avgSpeedKmh }.max() ?? 1 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: ECSpacing.md) {
@@ -1437,14 +1290,15 @@ struct SessionLapsContent: View {
                     SingleLapDetailView(lap: laps[0], discipline: activity.discipline)
                         .themedCard()
                 } else {
-                    // Plusieurs intervalles: liste cliquable
+                    // Plusieurs intervalles: liste cliquable avec analyse visuelle
                     VStack(spacing: 0) {
                         ForEach(Array(laps.enumerated()), id: \.element.id) { index, lap in
                             LapRowInteractive(
                                 index: index + 1,
                                 lap: lap,
                                 discipline: activity.discipline,
-                                isSelected: selectedLapIndex == index
+                                isSelected: selectedLapIndex == index,
+                                context: LapContext(maxPower: maxLapPower, maxHR: maxLapHR, maxSpeed: maxLapSpeed)
                             ) {
                                 withAnimation(.easeInOut(duration: 0.2)) {
                                     if selectedLapIndex == index {
@@ -1548,6 +1402,13 @@ struct SessionLapsContent: View {
             return String(format: "%.0f m total", meters)
         }
     }
+}
+
+// Helper struct for context
+struct LapContext {
+    let maxPower: Double
+    let maxHR: Double
+    let maxSpeed: Double
 }
 
 // MARK: - Single Lap Detail View (quand il n'y a qu'un intervalle)
@@ -1729,6 +1590,7 @@ private struct LapRowInteractive: View {
     let lap: ActivityLap
     let discipline: Discipline
     let isSelected: Bool
+    var context: LapContext?
     let onTap: () -> Void
     @EnvironmentObject var themeManager: ThemeManager
 
@@ -1745,49 +1607,46 @@ private struct LapRowInteractive: View {
                     .background(isSelected ? themeManager.accentColor : themeManager.textTertiary)
                     .cornerRadius(6)
 
-                // Durée et distance
+                // Durée et distance (Colonne fixe)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(lap.formattedDuration)
                         .font(.ecBodyMedium)
                         .foregroundColor(themeManager.textPrimary)
+                        .monospacedDigit()
 
                     Text(lap.formattedDistance)
                         .font(.ecSmall)
                         .foregroundColor(themeManager.textSecondary)
                 }
+                .frame(width: 70, alignment: .leading)
 
                 Spacer()
-
-                // Stat principale selon le sport
-                switch discipline {
-                case .cyclisme:
-                    if let avgPower = lap.avgPower {
-                        StatBadge(value: "\(Int(avgPower))", unit: "W", color: sportColor)
-                    } else if let avgHr = lap.avgHeartRate {
-                        StatBadge(value: "\(Int(avgHr))", unit: "bpm", color: themeManager.errorColor)
+                
+                // Métrique principale avec barre d'intensité
+                mainMetricView(sportColor: sportColor)
+                
+                // Secondaire (FC) si dispo
+                if let avgHr = lap.avgHeartRate {
+                    let isMax = (context != nil && context!.maxHR > 0) ? (avgHr >= context!.maxHR) : false
+                    VStack(alignment: .trailing, spacing: 0) {
+                        HStack(spacing: 2) {
+                            if isMax { Text("🏆").font(.system(size: 8)) }
+                            Text("\(Int(avgHr))")
+                                .font(.ecBodyMedium)
+                                .foregroundColor(themeManager.errorColor)
+                        }
+                        Text("bpm")
+                            .font(.system(size: 9))
+                            .foregroundColor(themeManager.textTertiary)
                     }
-                case .course:
-                    if let pace = lap.formattedPacePerKm {
-                        StatBadge(value: pace, unit: "/km", color: sportColor)
-                    } else if let avgHr = lap.avgHeartRate {
-                        StatBadge(value: "\(Int(avgHr))", unit: "bpm", color: themeManager.errorColor)
-                    }
-                case .natation:
-                    if let pace = lap.formattedPacePer100m {
-                        StatBadge(value: pace, unit: "/100m", color: sportColor)
-                    } else if let avgHr = lap.avgHeartRate {
-                        StatBadge(value: "\(Int(avgHr))", unit: "bpm", color: themeManager.errorColor)
-                    }
-                case .autre:
-                    if let avgHr = lap.avgHeartRate {
-                        StatBadge(value: "\(Int(avgHr))", unit: "bpm", color: themeManager.errorColor)
-                    }
+                    .frame(width: 40, alignment: .trailing)
                 }
 
                 // Indicateur d'expansion
                 Image(systemName: isSelected ? "chevron.up" : "chevron.down")
                     .font(.ecCaption)
                     .foregroundColor(themeManager.textTertiary)
+                    .frame(width: 12)
             }
             .padding(.horizontal, ECSpacing.md)
             .padding(.vertical, ECSpacing.sm)
@@ -1795,6 +1654,76 @@ private struct LapRowInteractive: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
+    
+    @ViewBuilder
+    private func mainMetricView(sportColor: Color) -> some View {
+        // Déterminer la valeur et le max pour la barre
+        let (valueStr, unit, ratio, isBest) = getMainMetricData()
+        
+        ZStack(alignment: .leading) {
+            // Barre de fond (intensité)
+            if ratio > 0 {
+                GeometryReader { geo in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(sportColor.opacity(0.15))
+                        .frame(width: geo.size.width * ratio, height: geo.size.height)
+                }
+            }
+            
+            // Texte
+            HStack(spacing: 4) {
+                if isBest { Text("🏆").font(.system(size: 10)) }
+                Text(valueStr)
+                    .font(.ecBodyBold)
+                    .foregroundColor(themeManager.textPrimary)
+                Text(unit)
+                    .font(.ecCaption)
+                    .foregroundColor(themeManager.textSecondary)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+        }
+        .frame(height: 24)
+        .cornerRadius(4)
+        // Largeur fixe pour alignement
+        .frame(width: 110, alignment: .leading)
+    }
+    
+    private func getMainMetricData() -> (String, String, Double, Bool) {
+        guard let ctx = context else { return ("-", "", 0, false) }
+        
+        switch discipline {
+        case .cyclisme:
+            if let pwr = lap.avgPower {
+                let ratio = ctx.maxPower > 0 ? (pwr / ctx.maxPower) : 0
+                return ("\(Int(pwr))", "W", ratio, pwr >= ctx.maxPower)
+            }
+        case .course:
+            if let pace = lap.formattedPacePerKm, let speed = lap.avgSpeedKmh {
+                let ratio = ctx.maxSpeed > 0 ? (speed / ctx.maxSpeed) : 0
+                return (pace, "/km", ratio, speed >= ctx.maxSpeed)
+            }
+        case .natation:
+            if let pace = lap.formattedPacePer100m, let speed = lap.avgSpeedKmh {
+                let ratio = ctx.maxSpeed > 0 ? (speed / ctx.maxSpeed) : 0
+                return (pace, "/100m", ratio, speed >= ctx.maxSpeed)
+            }
+        default:
+            break
+        }
+        
+        // Fallback: Vitesse ou FC
+        if let speed = lap.formattedSpeed, let rawSpeed = lap.avgSpeedKmh {
+            let ratio = ctx.maxSpeed > 0 ? (rawSpeed / ctx.maxSpeed) : 0
+            return (speed, "", ratio, rawSpeed >= ctx.maxSpeed)
+        }
+        
+        return ("-", "", 0, false)
+    }
+}
+// Extensions pour Optional Bool
+extension Optional where Wrapped == Bool {
+    var unavailable: Bool { self == nil }
 }
 
 // MARK: - Stat Badge
@@ -2532,6 +2461,7 @@ import MapKit
 
 struct SessionMapContent: View {
     let activity: Activity
+    var preferences: SessionDisplayPreferences?
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject var themeManager: ThemeManager
     @State private var gpsPoints: [GPSPoint]?
@@ -2554,7 +2484,13 @@ struct SessionMapContent: View {
                 .background(themeManager.elevatedColor)
                 .cornerRadius(ECRadius.lg)
             } else if let gpsPoints = gpsPoints, !gpsPoints.isEmpty {
-                GPSMapView(gpsPoints: gpsPoints, discipline: activity.discipline)
+                GPSMapView(
+                    gpsPoints: gpsPoints,
+                    discipline: activity.discipline,
+                    mapType: preferences?.mapType ?? .standard,
+                    colorizeTrace: preferences?.colorizeTrace ?? true,
+                    traceMetric: preferences?.traceColorMetric ?? .heartRate
+                )
                     .frame(height: 300)
                     .cornerRadius(ECRadius.lg)
 
@@ -2780,17 +2716,22 @@ struct GPSMapView: UIViewRepresentable {
     let gpsPoints: [GPSPoint]
     let discipline: Discipline
     var showMarkers: Bool = true
+    var mapType: MapType = .standard
+    var colorizeTrace: Bool = false
+    var traceMetric: SessionMetric = .heartRate
 
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView()
         mapView.delegate = context.coordinator
         mapView.showsCompass = true
         mapView.showsScale = true
-        mapView.mapType = .standard
+        updateMapType(mapView)
         return mapView
     }
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
+        updateMapType(mapView)
+        
         // Clear existing overlays and annotations
         mapView.removeOverlays(mapView.overlays)
         mapView.removeAnnotations(mapView.annotations)
@@ -2819,10 +2760,23 @@ struct GPSMapView: UIViewRepresentable {
         // Calculate and set the region
         let region = calculateRegion(from: coordinates)
         mapView.setRegion(region, animated: false)
+        
+        // Update coordinator with new props
+        context.coordinator.discipline = discipline
+        context.coordinator.colorizeTrace = colorizeTrace
+        context.coordinator.traceMetric = traceMetric
+    }
+    
+    private func updateMapType(_ mapView: MKMapView) {
+        switch mapType {
+        case .standard: mapView.mapType = .standard
+        case .hybrid: mapView.mapType = .hybrid
+        case .satellite: mapView.mapType = .satellite
+        }
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(discipline: discipline)
+        Coordinator(discipline: discipline, colorizeTrace: colorizeTrace, traceMetric: traceMetric)
     }
 
     // Decimate points to improve performance
@@ -2873,16 +2827,32 @@ struct GPSMapView: UIViewRepresentable {
     // MARK: - Coordinator
 
     class Coordinator: NSObject, MKMapViewDelegate {
-        let discipline: Discipline
+        var discipline: Discipline
+        var colorizeTrace: Bool
+        var traceMetric: SessionMetric
 
-        init(discipline: Discipline) {
+        init(discipline: Discipline, colorizeTrace: Bool, traceMetric: SessionMetric) {
             self.discipline = discipline
+            self.colorizeTrace = colorizeTrace
+            self.traceMetric = traceMetric
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let polyline = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: polyline)
-                renderer.strokeColor = UIColor(ThemeManager.shared.sportColor(for: discipline))
+                
+                if colorizeTrace {
+                    switch traceMetric {
+                    case .heartRate: renderer.strokeColor = UIColor(ThemeManager.shared.errorColor)
+                    case .power: renderer.strokeColor = UIColor(ThemeManager.shared.warningColor)
+                    case .speed: renderer.strokeColor = UIColor(ThemeManager.shared.infoColor)
+                    case .elevation: renderer.strokeColor = UIColor(ThemeManager.shared.successColor)
+                    default: renderer.strokeColor = UIColor(ThemeManager.shared.accentColor)
+                    }
+                } else {
+                    renderer.strokeColor = UIColor(ThemeManager.shared.sportColor(for: discipline))
+                }
+                
                 renderer.lineWidth = 3
                 renderer.lineCap = .round
                 renderer.lineJoin = .round
@@ -2890,7 +2860,7 @@ struct GPSMapView: UIViewRepresentable {
             }
             return MKOverlayRenderer(overlay: overlay)
         }
-
+        
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
             guard let gpsAnnotation = annotation as? GPSAnnotation else { return nil }
 
@@ -3027,14 +2997,7 @@ struct GPSStatItem: View {
             userId: "1",
             dateStart: "2025-11-27",
             sport: "Vélo - Route",
-            name: "Sortie vélo matinale",
-            duration: 8100,
-            distance: 65.4,
-            avgWatt: 215,
-            maxWatt: 520,
-            elevationGain: 850,
-            elevationLoss: 820,
-            loadCoggan: 142
+            name: "Sortie vélo matinale"
         ))
     }
     .environmentObject(ThemeManager.shared)

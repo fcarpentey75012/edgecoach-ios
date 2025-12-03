@@ -107,13 +107,25 @@ class DashboardViewModel: ObservableObject {
 
     private func loadRecentActivities(userId: String) async {
         do {
+            // Charger les activités des 90 derniers jours
+            let endDate = Date()
+            let startDate = Calendar.current.date(byAdding: .day, value: -90, to: endDate) ?? endDate
+
             recentActivities = try await activitiesService.getHistory(
                 userId: userId,
+                startDate: startDate,
+                endDate: endDate,
                 limit: 5
             )
+            #if DEBUG
+            print("✅ Loaded \(recentActivities.count) recent activities")
+            for activity in recentActivities {
+                print("  - \(activity.name ?? "Sans nom") | \(activity.dateStart) | distance=\(activity.fileDatas?.distance ?? 0)")
+            }
+            #endif
         } catch {
             #if DEBUG
-            print("Failed to load recent activities: \(error)")
+            print("❌ Failed to load recent activities: \(error)")
             #endif
         }
     }

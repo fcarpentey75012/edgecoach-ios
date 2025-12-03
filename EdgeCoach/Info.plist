@@ -45,6 +45,12 @@
         <key>UIApplicationSupportsMultipleScenes</key>
         <false/>
     </dict>
+    <key>NSCameraUsageDescription</key>
+    <string>EdgeCoach utilise la caméra pour prendre des photos de votre équipement sportif.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>EdgeCoach accède à votre galerie pour ajouter des photos à votre équipement sportif.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>EdgeCoach utilise le microphone pour enregistrer des messages vocaux et les transcrire en texte.</string>
     <key>UILaunchScreen</key>
     <dict>
         <key>UIColorName</key>

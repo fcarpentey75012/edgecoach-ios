@@ -188,9 +188,6 @@ class APIService {
 
         #if DEBUG
         print("📥 API Response: \(httpResponse.statusCode)")
-        if let jsonString = String(data: data, encoding: .utf8) {
-            print("📄 Data: \(jsonString.prefix(500))...")
-        }
         #endif
 
         switch httpResponse.statusCode {

@@ -9,27 +9,63 @@ import Foundation
 struct ChatMessage: Codable, Identifiable {
     let id: String
     let role: MessageRole
-    let content: String
+    var content: String
     let timestamp: Date?
     var isLoading: Bool = false
+
+    // Support média
+    var attachments: [MessageAttachment]?
+    var voiceMessage: VoiceMessage?
 
     enum CodingKeys: String, CodingKey {
         case id
         case role
         case content
         case timestamp
+        case attachments
+        case voiceMessage
     }
 
-    init(id: String = UUID().uuidString, role: MessageRole, content: String, timestamp: Date? = Date(), isLoading: Bool = false) {
+    init(
+        id: String = UUID().uuidString,
+        role: MessageRole,
+        content: String,
+        timestamp: Date? = Date(),
+        isLoading: Bool = false,
+        attachments: [MessageAttachment]? = nil,
+        voiceMessage: VoiceMessage? = nil
+    ) {
         self.id = id
         self.role = role
         self.content = content
         self.timestamp = timestamp
         self.isLoading = isLoading
+        self.attachments = attachments
+        self.voiceMessage = voiceMessage
     }
 
     var isUser: Bool {
         role == .user
+    }
+
+    var hasAttachments: Bool {
+        attachments?.isEmpty == false
+    }
+
+    var hasVoiceMessage: Bool {
+        voiceMessage != nil
+    }
+
+    var isVoiceOnly: Bool {
+        hasVoiceMessage && content.isEmpty
+    }
+
+    var imageAttachments: [MessageAttachment] {
+        attachments?.filter { $0.type == .image } ?? []
+    }
+
+    var documentAttachments: [MessageAttachment] {
+        attachments?.filter { $0.type == .document } ?? []
     }
 }
 

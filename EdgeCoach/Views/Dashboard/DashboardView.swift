@@ -767,8 +767,8 @@ struct ActivityCard: View {
 
             Spacer()
 
-            // TSS
-            if let tss = activity.tss {
+            // TSS (utilise preferredTSSInt pour découplage Nolio)
+            if let tss = activity.preferredTSSInt {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("\(tss)")
                         .font(.ecLabelBold)

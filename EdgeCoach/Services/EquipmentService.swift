@@ -86,6 +86,18 @@ struct SportEquipment: Codable {
     var suits: [EquipmentItem]?
     var goggles: [EquipmentItem]?
     var accessories: [EquipmentItem]?
+
+    /// Retourne tous les équipements combinés
+    var allItems: [EquipmentItem] {
+        var items: [EquipmentItem] = []
+        if let bikes = bikes { items.append(contentsOf: bikes) }
+        if let shoes = shoes { items.append(contentsOf: shoes) }
+        if let clothes = clothes { items.append(contentsOf: clothes) }
+        if let suits = suits { items.append(contentsOf: suits) }
+        if let goggles = goggles { items.append(contentsOf: goggles) }
+        if let accessories = accessories { items.append(contentsOf: accessories) }
+        return items
+    }
 }
 
 struct UserEquipment: Codable {

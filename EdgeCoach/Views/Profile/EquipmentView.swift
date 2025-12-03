@@ -398,20 +398,31 @@ struct GearCard: View {
     let gear: Gear
     let sportColor: Color
     let themeManager: ThemeManager
-    
+
+    @State private var gearImage: UIImage?
+
     var body: some View {
         HStack(spacing: ECSpacing.md) {
-            // Icon Box
+            // Image ou Icon Box
             ZStack {
-                RoundedRectangle(cornerRadius: ECRadius.md)
-                    .fill(sportColor.opacity(0.15))
-                    .frame(width: 60, height: 60)
-                
-                Image(systemName: gear.type.icon)
-                    .font(.title2)
-                    .foregroundColor(sportColor)
+                if let image = gearImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 60, height: 60)
+                        .clipShape(RoundedRectangle(cornerRadius: ECRadius.md))
+                } else {
+                    RoundedRectangle(cornerRadius: ECRadius.md)
+                        .fill(sportColor.opacity(0.15))
+                        .frame(width: 60, height: 60)
+                        .overlay(
+                            Image(systemName: gear.type.icon)
+                                .font(.title2)
+                                .foregroundColor(sportColor)
+                        )
+                }
             }
-            
+
             // Content
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
@@ -419,7 +430,7 @@ struct GearCard: View {
                         .font(.ecLabelBold)
                         .foregroundColor(gear.status == .active ? themeManager.textPrimary : themeManager.textSecondary)
                         .lineLimit(1)
-                    
+
                     if gear.status != .active {
                         Text("Archivé")
                             .font(.system(size: 9, weight: .bold))
@@ -430,15 +441,15 @@ struct GearCard: View {
                             .cornerRadius(4)
                     }
                 }
-                
+
                 Text(gear.fullDescription)
                     .font(.ecBody)
                     .foregroundColor(themeManager.textSecondary)
                     .lineLimit(1)
             }
-            
+
             Spacer()
-            
+
             // Chevron pour indiquer que c'est cliquable
             Image(systemName: "chevron.right")
                 .foregroundColor(themeManager.textTertiary.opacity(0.6))
@@ -452,6 +463,9 @@ struct GearCard: View {
         )
         .shadow(color: themeManager.cardShadow, radius: 2, x: 0, y: 1)
         .opacity(gear.status == .active ? 1.0 : 0.7)
+        .onAppear {
+            gearImage = ImageStorageService.shared.loadImage(for: gear)
+        }
     }
 }
 

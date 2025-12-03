@@ -191,37 +191,46 @@ struct CalendarDayCell: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 2) {
-                ZStack {
-                    if isSelected {
-                        Circle()
-                            .fill(themeManager.accentColor)
-                            .frame(width: 36, height: 36)
-                    } else if isToday {
-                        Circle()
-                            .stroke(themeManager.accentColor, lineWidth: 2)
-                            .frame(width: 36, height: 36)
-                    }
-
-                    Text(dayNumber)
-                        .font(.ecBody)
-                        .foregroundColor(textColor)
+            ZStack {
+                // Fond coloré pour activité/séance planifiée
+                if hasActivity && hasPlannedSession {
+                    // Dégradé si les deux
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    themeManager.successColor.opacity(0.2),
+                                    themeManager.accentColor.opacity(0.2)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 36, height: 36)
+                } else if hasActivity {
+                    Circle()
+                        .fill(themeManager.successColor.opacity(0.2))
+                        .frame(width: 36, height: 36)
+                } else if hasPlannedSession {
+                    Circle()
+                        .fill(themeManager.accentColor.opacity(0.2))
+                        .frame(width: 36, height: 36)
                 }
 
-                // Indicators
-                HStack(spacing: 2) {
-                    if hasActivity {
-                        Circle()
-                            .fill(themeManager.successColor)
-                            .frame(width: 5, height: 5)
-                    }
-                    if hasPlannedSession {
-                        Circle()
-                            .fill(themeManager.accentColor)
-                            .frame(width: 5, height: 5)
-                    }
+                // Cercle de sélection ou aujourd'hui
+                if isSelected {
+                    Circle()
+                        .fill(themeManager.accentColor)
+                        .frame(width: 36, height: 36)
+                } else if isToday {
+                    Circle()
+                        .stroke(themeManager.accentColor, lineWidth: 2)
+                        .frame(width: 36, height: 36)
                 }
-                .frame(height: 6)
+
+                Text(dayNumber)
+                    .font(.ecBody)
+                    .foregroundColor(textColor)
             }
         }
         .frame(height: 50)

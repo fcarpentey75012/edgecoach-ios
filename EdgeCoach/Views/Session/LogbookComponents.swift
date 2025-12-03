@@ -116,9 +116,9 @@ struct EffortRatingEditor: View {
     }
 }
 
-// MARK: - Nutrition Item Model
+// MARK: - Nutrition Item Model (UI)
 
-struct NutritionItem: Identifiable, Codable, Equatable {
+struct UINutritionItem: Identifiable, Codable, Equatable {
     let id: String
     var type: NutritionType
     var quantity: Int
@@ -195,7 +195,7 @@ enum NutritionType: String, Codable, CaseIterable, Identifiable {
 
 struct NutritionEditor: View {
     @EnvironmentObject var themeManager: ThemeManager
-    @Binding var items: [NutritionItem]
+    @Binding var items: [UINutritionItem]
     @State private var showingAddSheet = false
 
     var body: some View {
@@ -294,7 +294,7 @@ struct NutritionStat: View {
 }
 
 struct NutritionItemRow: View {
-    let item: NutritionItem
+    let item: UINutritionItem
     let themeManager: ThemeManager
     let onDelete: () -> Void
     let onQuantityChange: (Int) -> Void
@@ -358,7 +358,7 @@ struct NutritionItemRow: View {
 
 struct NutritionAddSheet: View {
     @Environment(\.dismiss) private var dismiss
-    let onAdd: (NutritionItem) -> Void
+    let onAdd: (UINutritionItem) -> Void
 
     @State private var selectedType: NutritionType = .gel
     @State private var quantity = 1
@@ -397,7 +397,7 @@ struct NutritionAddSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Ajouter") {
-                        let item = NutritionItem(
+                        let item = UINutritionItem(
                             type: selectedType,
                             quantity: quantity,
                             timing: timing.isEmpty ? nil : timing
@@ -411,9 +411,9 @@ struct NutritionAddSheet: View {
     }
 }
 
-// MARK: - Hydration Item Model
+// MARK: - Hydration Item Model (UI)
 
-struct HydrationItem: Identifiable, Codable, Equatable {
+struct UIHydrationItem: Identifiable, Codable, Equatable {
     let id: String
     var type: HydrationType
     var volumeMl: Int
@@ -469,7 +469,7 @@ enum HydrationType: String, Codable, CaseIterable, Identifiable {
 
 struct HydrationEditor: View {
     @EnvironmentObject var themeManager: ThemeManager
-    @Binding var items: [HydrationItem]
+    @Binding var items: [UIHydrationItem]
     @State private var showingAddSheet = false
 
     var body: some View {
@@ -545,7 +545,7 @@ struct HydrationEditor: View {
 }
 
 struct HydrationItemRow: View {
-    let item: HydrationItem
+    let item: UIHydrationItem
     let themeManager: ThemeManager
     let onDelete: () -> Void
     let onVolumeChange: (Int) -> Void
@@ -615,7 +615,7 @@ struct HydrationItemRow: View {
 
 struct HydrationAddSheet: View {
     @Environment(\.dismiss) private var dismiss
-    let onAdd: (HydrationItem) -> Void
+    let onAdd: (UIHydrationItem) -> Void
 
     @State private var selectedType: HydrationType = .water
     @State private var volume = 500
@@ -669,7 +669,7 @@ struct HydrationAddSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Ajouter") {
-                        let item = HydrationItem(type: selectedType, volumeMl: volume)
+                        let item = UIHydrationItem(type: selectedType, volumeMl: volume)
                         onAdd(item)
                         dismiss()
                     }
@@ -787,8 +787,8 @@ struct EquipmentSelectRow: View {
                     Text(item.name)
                         .font(.ecLabel)
                         .foregroundColor(themeManager.textPrimary)
-                    if !item.brand.isEmpty {
-                        Text(item.brand)
+                    if let brand = item.brand, !brand.isEmpty {
+                        Text(brand)
                             .font(.ecSmall)
                             .foregroundColor(themeManager.textTertiary)
                     }
@@ -796,8 +796,8 @@ struct EquipmentSelectRow: View {
 
                 Spacer()
 
-                if !item.model.isEmpty {
-                    Text(item.model)
+                if let model = item.model, !model.isEmpty {
+                    Text(model)
                         .font(.ecCaption)
                         .foregroundColor(themeManager.textTertiary)
                 }
@@ -823,8 +823,8 @@ struct EquipmentSelectRow: View {
 
 #Preview("Nutrition Editor") {
     NutritionEditor(items: .constant([
-        NutritionItem(type: .gel, quantity: 2),
-        NutritionItem(type: .bar, quantity: 1)
+        UINutritionItem(type: .gel, quantity: 2),
+        UINutritionItem(type: .bar, quantity: 1)
     ]))
     .padding()
     .environmentObject(ThemeManager.shared)
@@ -832,8 +832,8 @@ struct EquipmentSelectRow: View {
 
 #Preview("Hydration Editor") {
     HydrationEditor(items: .constant([
-        HydrationItem(type: .water, volumeMl: 750),
-        HydrationItem(type: .isotonic, volumeMl: 500)
+        UIHydrationItem(type: .water, volumeMl: 750),
+        UIHydrationItem(type: .isotonic, volumeMl: 500)
     ]))
     .padding()
     .environmentObject(ThemeManager.shared)

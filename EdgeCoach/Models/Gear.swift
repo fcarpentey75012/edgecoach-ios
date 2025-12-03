@@ -62,12 +62,12 @@ struct Gear: Identifiable, Codable {
     let model: String
     let type: GearType
     let primarySport: SportType // Le sport principal auquel il est rattaché dans l'API
-    
+
     // Métadonnées
     let year: String?
     let notes: String?
     let status: GearStatus
-    
+
     // Propriété calculée pour l'affichage
     var displayName: String {
         if !brand.isEmpty && !model.isEmpty {
@@ -75,8 +75,13 @@ struct Gear: Identifiable, Codable {
         }
         return name
     }
-    
+
     var fullDescription: String {
         [brand, model, year].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " • ")
+    }
+
+    /// Chemin local de l'image (stockée dans Documents)
+    var localImagePath: String {
+        "gear_images/\(id).jpg"
     }
 }

@@ -52,7 +52,7 @@ struct CoachChatContentView: View {
                 ScrollView {
                     LazyVStack(spacing: ECSpacing.md) {
                         ForEach(viewModel.messages) { message in
-                            MessageBubble(
+                            MessageBubbleWithMedia(
                                 message: message,
                                 coachAvatar: viewModel.selectedCoach.avatar,
                                 coachIcon: viewModel.selectedCoach.icon,
@@ -72,15 +72,24 @@ struct CoachChatContentView: View {
                 }
             }
 
+            // Indicateur d'upload/transcription
+            if viewModel.isUploading || viewModel.isTranscribing {
+                uploadIndicator
+            }
+
             Divider()
                 .background(themeManager.borderColor)
 
-            // Input Bar
+            // Input Bar avec support média
             ChatInputBar(
                 text: $viewModel.inputText,
                 isLoading: viewModel.isSending,
                 isFocused: $isInputFocused,
-                onSend: sendMessage
+                onSend: sendMessage,
+                selectedImages: $viewModel.selectedImages,
+                selectedFiles: $viewModel.selectedFiles,
+                audioRecorder: viewModel.audioRecorder,
+                onVoiceRecordingComplete: handleVoiceRecording
             )
         }
         .background(themeManager.backgroundColor)
@@ -103,6 +112,29 @@ struct CoachChatContentView: View {
             .environmentObject(themeManager)
             .presentationDetents([.medium, .large])
         }
+        .alert("Erreur", isPresented: .constant(viewModel.error != nil)) {
+            Button("OK") {
+                viewModel.error = nil
+            }
+        } message: {
+            Text(viewModel.error ?? "")
+        }
+    }
+
+    private var uploadIndicator: some View {
+        HStack(spacing: ECSpacing.sm) {
+            ProgressView()
+                .scaleEffect(0.8)
+
+            Text(viewModel.isTranscribing ? "Transcription en cours..." : "Upload en cours...")
+                .font(.ecSmall)
+                .foregroundColor(themeManager.textSecondary)
+
+            Spacer()
+        }
+        .padding(.horizontal, ECSpacing.md)
+        .padding(.vertical, ECSpacing.xs)
+        .background(themeManager.surfaceColor)
     }
 
     private var sidebarButton: some View {
@@ -149,12 +181,118 @@ struct CoachChatContentView: View {
     }
 
     private func sendMessage() {
-        guard !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard let userId = authViewModel.user?.id else { return }
+
+        // Vérifier s'il y a du contenu à envoyer
+        let hasText = !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasAttachments = !viewModel.selectedImages.isEmpty || !viewModel.selectedFiles.isEmpty
+
+        guard hasText || hasAttachments else { return }
+
+        Task {
+            if hasAttachments {
+                await viewModel.sendMessageWithAttachments(userId: userId)
+            } else {
+                await viewModel.sendMessage(userId: userId)
+            }
+        }
+    }
+
+    private func handleVoiceRecording(url: URL) {
         guard let userId = authViewModel.user?.id else { return }
 
         Task {
-            await viewModel.sendMessage(userId: userId)
+            await viewModel.handleVoiceRecording(url: url, userId: userId)
         }
+    }
+}
+
+// MARK: - Message Bubble with Media Support
+
+struct MessageBubbleWithMedia: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    let message: ChatMessage
+    var coachAvatar: String = "JF"
+    var coachIcon: String = "trophy"
+    var coachColor: Color = .blue
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: ECSpacing.sm) {
+            if message.isUser {
+                Spacer(minLength: 60)
+            } else {
+                // Coach Avatar
+                ZStack {
+                    Circle()
+                        .fill(coachColor.opacity(0.15))
+                        .frame(width: 32, height: 32)
+
+                    Image(systemName: coachIcon)
+                        .font(.system(size: 16))
+                        .foregroundColor(coachColor)
+                }
+            }
+
+            VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
+                // Voice message
+                if let voiceMessage = message.voiceMessage {
+                    VoiceMessageBubble(
+                        voiceMessage: voiceMessage,
+                        isUser: message.isUser
+                    )
+                }
+
+                // Attachments
+                if let attachments = message.attachments, !attachments.isEmpty {
+                    ForEach(attachments) { attachment in
+                        AttachmentBubbleView(
+                            attachment: attachment,
+                            isUser: message.isUser
+                        )
+                    }
+                }
+
+                // Text content
+                if message.isLoading && message.content.isEmpty {
+                    // Typing indicator
+                    TypingIndicatorBubble(sportIcon: coachIcon, sportColor: coachColor)
+                } else if !message.content.isEmpty {
+                    HStack(spacing: 0) {
+                        Text(message.content)
+                            .font(.ecBody)
+                            .foregroundColor(message.isUser ? .white : themeManager.textPrimary)
+
+                        // Streaming cursor
+                        if message.isLoading && !message.content.isEmpty {
+                            StreamingCursor()
+                        }
+                    }
+                    .padding(.horizontal, ECSpacing.md)
+                    .padding(.vertical, ECSpacing.sm)
+                    .background(
+                        message.isUser ? themeManager.accentColor : themeManager.surfaceColor
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: ECRadius.lg))
+                }
+
+                // Timestamp
+                if let timestamp = message.timestamp, !message.isLoading {
+                    Text(formatTime(timestamp))
+                        .font(.ecSmall)
+                        .foregroundColor(themeManager.textTertiary)
+                }
+            }
+
+            if !message.isUser {
+                Spacer(minLength: 60)
+            }
+        }
+    }
+
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 }
 
@@ -906,9 +1044,142 @@ struct TypingIndicator: View {
     }
 }
 
-// MARK: - Chat Input Bar
+// MARK: - Chat Input Bar (avec support média)
 
 struct ChatInputBar: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    @Binding var text: String
+    let isLoading: Bool
+    var isFocused: FocusState<Bool>.Binding
+    let onSend: () -> Void
+
+    // Support média
+    @Binding var selectedImages: [UIImage]
+    @Binding var selectedFiles: [URL]
+    @ObservedObject var audioRecorder: AudioRecorderService
+    let onVoiceRecordingComplete: (URL) -> Void
+
+    @State private var showingAttachmentPicker = false
+
+    init(
+        text: Binding<String>,
+        isLoading: Bool,
+        isFocused: FocusState<Bool>.Binding,
+        onSend: @escaping () -> Void,
+        selectedImages: Binding<[UIImage]> = .constant([]),
+        selectedFiles: Binding<[URL]> = .constant([]),
+        audioRecorder: AudioRecorderService = AudioRecorderService.shared,
+        onVoiceRecordingComplete: @escaping (URL) -> Void = { _ in }
+    ) {
+        self._text = text
+        self.isLoading = isLoading
+        self.isFocused = isFocused
+        self.onSend = onSend
+        self._selectedImages = selectedImages
+        self._selectedFiles = selectedFiles
+        self.audioRecorder = audioRecorder
+        self.onVoiceRecordingComplete = onVoiceRecordingComplete
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Prévisualisation des attachements
+            if !selectedImages.isEmpty || !selectedFiles.isEmpty {
+                AttachmentPreviewRow(
+                    images: selectedImages,
+                    files: selectedFiles,
+                    onRemoveImage: { index in
+                        selectedImages.remove(at: index)
+                    },
+                    onRemoveFile: { index in
+                        selectedFiles.remove(at: index)
+                    }
+                )
+                .padding(.top, ECSpacing.sm)
+
+                Divider()
+                    .background(themeManager.borderColor)
+            }
+
+            // Barre d'input principale
+            if audioRecorder.state.isRecording || audioRecorder.state == .paused {
+                // Mode enregistrement vocal
+                VoiceRecordButton(
+                    recorder: audioRecorder,
+                    onRecordingComplete: onVoiceRecordingComplete,
+                    onCancel: {}
+                )
+                .padding(.horizontal, ECSpacing.md)
+                .padding(.vertical, ECSpacing.sm)
+            } else {
+                // Mode texte normal
+                HStack(spacing: ECSpacing.sm) {
+                    // Bouton attachement
+                    AttachmentPickerButton(
+                        selectedImages: $selectedImages,
+                        selectedFiles: $selectedFiles,
+                        showingPicker: $showingAttachmentPicker
+                    )
+
+                    // Champ texte
+                    TextField("Écrivez votre message...", text: $text, axis: .vertical)
+                        .font(.ecBody)
+                        .padding(.horizontal, ECSpacing.md)
+                        .padding(.vertical, ECSpacing.sm)
+                        .background(themeManager.surfaceColor)
+                        .cornerRadius(ECRadius.lg)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: ECRadius.lg)
+                                .stroke(themeManager.borderColor, lineWidth: 1)
+                        )
+                        .lineLimit(1...5)
+                        .focused(isFocused)
+
+                    // Bouton micro ou envoyer
+                    if canSend {
+                        Button(action: onSend) {
+                            ZStack {
+                                Circle()
+                                    .fill(themeManager.accentColor)
+                                    .frame(width: 24, height: 24)
+
+                                Image(systemName: "arrow.up")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .disabled(isLoading)
+                    } else {
+                        // Bouton microphone
+                        Button {
+                            Task {
+                                await audioRecorder.startRecording()
+                            }
+                        } label: {
+                            Image(systemName: "mic.fill")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(themeManager.textSecondary)
+                                .frame(width: 24, height: 24)
+                        }
+                    }
+                }
+                .padding(.horizontal, ECSpacing.md)
+                .padding(.vertical, ECSpacing.sm)
+            }
+        }
+        .background(themeManager.backgroundColor)
+    }
+
+    private var canSend: Bool {
+        let hasText = !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasAttachments = !selectedImages.isEmpty || !selectedFiles.isEmpty
+        return (hasText || hasAttachments) && !isLoading
+    }
+}
+
+// MARK: - Legacy ChatInputBar (rétrocompatibilité)
+
+struct ChatInputBarSimple: View {
     @EnvironmentObject var themeManager: ThemeManager
     @Binding var text: String
     let isLoading: Bool
