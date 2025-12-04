@@ -176,19 +176,11 @@ class APIService {
             queryParams: queryParams
         )
 
-        #if DEBUG
-        print("🌐 API Request: \(method) \(endpoint)")
-        #endif
-
         let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
-
-        #if DEBUG
-        print("📥 API Response: \(httpResponse.statusCode)")
-        #endif
 
         switch httpResponse.statusCode {
         case 200...299:

@@ -9,77 +9,24 @@ struct DashboardView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var themeManager: ThemeManager
     @StateObject private var viewModel = DashboardViewModel()
+
+    // Navigation states
     @State private var selectedDiscipline: Discipline?
     @State private var showingPlanCreator = false
-    @State private var showingSettings = false
     @State private var selectedPlannedSession: PlannedSession?
+    @State private var navigateToPerformance = false
+
+    // Widget config sheet states
+    @State private var showingKPIConfig = false
+    @State private var showingPerformanceConfig = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: ECSpacing.md) {
-                    // Time Scope Picker (Granularité)
-                    Picker("Période", selection: $viewModel.preferences.timeScope) {
-                        ForEach(DashboardTimeScope.allCases) { scope in
-                            Text(scope.rawValue).tag(scope)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
-                    
-                    // Dynamic KPIs Grid
-                    if let summary = viewModel.summary {
-                        KpiGrid(
-                            metrics: viewModel.preferences.selectedMetrics,
-                            summary: summary,
-                            themeManager: themeManager
-                        )
-                        .padding(.horizontal)
-                    }
-                    
-                    // Training Load Card (TODO: Implement TrainingLoadCard and TrainingLoad model)
-                    // if let trainingLoad = viewModel.trainingLoad {
-                    //     TrainingLoadCard(load: trainingLoad)
-                    // }
-
-                    // Week Progress
-                    if let progress = viewModel.weekProgress, progress.targetDuration > 0 {
-                        WeekProgressCard(progress: progress)
-                            .padding(.horizontal)
-                    }
-
-                    // Sports Breakdown
-                    if viewModel.hasAnySport, let byDiscipline = viewModel.byDiscipline {
-                        SportsBreakdownSection(
-                            byDiscipline: byDiscipline,
-                            viewModel: viewModel,
-                            weekStart: viewModel.weekStartDate,
-                            selectedDiscipline: $selectedDiscipline
-                        )
-                        .padding(.horizontal)
-                    }
-
-                    // Planned Sessions (from plan)
-                    PlannedSessionsSection(
-                        sessions: viewModel.plannedSessions,
-                        hasPlan: viewModel.hasPlan,
-                        onCreatePlan: { showingPlanCreator = true },
-                        onSessionTap: { session in
-                            selectedPlannedSession = session
-                        }
-                    )
-                    .padding(.horizontal)
-
-                    // Upcoming Sessions (from API)
-                    if !viewModel.upcomingSessions.isEmpty {
-                        UpcomingSessionsSection(sessions: viewModel.upcomingSessions)
-                            .padding(.horizontal)
-                    }
-
-                    // Recent Activities
-                    if !viewModel.recentActivities.isEmpty {
-                        RecentActivitiesSection(activities: viewModel.recentActivities)
-                            .padding(.horizontal)
+                    // Afficher les widgets dans l'ordre configuré
+                    ForEach(viewModel.enabledWidgetTypes(), id: \.self) { widgetType in
+                        widgetView(for: widgetType)
                     }
                 }
                 .padding(.vertical)
@@ -87,15 +34,6 @@ struct DashboardView: View {
             .background(themeManager.backgroundColor)
             .navigationTitle("Dashboard")
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Image(systemName: "gearshape")
-                            .font(.body)
-                            .foregroundColor(themeManager.textPrimary)
-                    }
-                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showingPlanCreator = true
@@ -111,12 +49,7 @@ struct DashboardView: View {
                     await viewModel.refresh(userId: userId)
                 }
             }
-            .overlay {
-                if viewModel.isLoading && viewModel.weeklySummaryData == nil {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                }
-            }
+            // Sheets de navigation
             .sheet(item: $selectedDiscipline) { discipline in
                 DisciplineSessionsView(
                     discipline: discipline,
@@ -130,7 +63,6 @@ struct DashboardView: View {
                     .environmentObject(authViewModel)
                     .environmentObject(themeManager)
                     .onDisappear {
-                        // Refresh data after creating a plan
                         Task {
                             if let userId = authViewModel.user?.id {
                                 await viewModel.refresh(userId: userId)
@@ -138,12 +70,22 @@ struct DashboardView: View {
                         }
                     }
             }
-            .sheet(isPresented: $showingSettings) {
-                DashboardSettingsView(preferences: $viewModel.preferences)
-                    .environmentObject(themeManager)
-            }
             .sheet(item: $selectedPlannedSession) { session in
                 PlannedSessionDetailSheet(session: session)
+                    .environmentObject(themeManager)
+            }
+            .sheet(isPresented: $navigateToPerformance) {
+                PerformanceView()
+                    .environmentObject(authViewModel)
+                    .environmentObject(themeManager)
+            }
+            // Sheets de configuration des widgets
+            .sheet(isPresented: $showingKPIConfig) {
+                KPISummaryConfigSheet(config: $viewModel.widgetPreferences.kpiConfig)
+                    .environmentObject(themeManager)
+            }
+            .sheet(isPresented: $showingPerformanceConfig) {
+                PerformanceWidgetConfigSheet(config: $viewModel.widgetPreferences.performanceConfig)
                     .environmentObject(themeManager)
             }
         }
@@ -153,81 +95,76 @@ struct DashboardView: View {
             }
         }
     }
-}
 
-// MARK: - KPI Grid
+    // MARK: - Widget View Builder
 
-struct KpiGrid: View {
-    let metrics: [DashboardMetric]
-    let summary: WeeklySummary
-    let themeManager: ThemeManager
-    
-    let columns = [
-        GridItem(.flexible()),
-        GridItem(.flexible())
-    ]
-    
-    var body: some View {
-        LazyVGrid(columns: columns, spacing: ECSpacing.sm) {
-            ForEach(metrics) { metric in
-                KpiCard(metric: metric, value: value(for: metric), themeManager: themeManager)
+    @ViewBuilder
+    private func widgetView(for type: DashboardWidgetType) -> some View {
+        switch type {
+        case .kpiSummary:
+            KPISummaryCard(
+                timeScope: $viewModel.widgetPreferences.kpiConfig.timeScope,
+                selectedMetrics: $viewModel.widgetPreferences.kpiConfig.selectedMetrics,
+                summary: viewModel.summary
+            )
+            .padding(.horizontal)
+            .onLongPressGesture {
+                showingKPIConfig = true
+            }
+
+        case .performance:
+            PerformanceCardsSection(
+                viewModel: viewModel,
+                config: viewModel.widgetPreferences.performanceConfig,
+                onNavigateToPerformance: { navigateToPerformance = true }
+            )
+            .padding(.horizontal)
+            .onLongPressGesture {
+                showingPerformanceConfig = true
+            }
+
+        case .weekProgress:
+            if let progress = viewModel.weekProgress, progress.targetDuration > 0 {
+                WeekProgressCard(progress: progress)
+                    .padding(.horizontal)
+            }
+
+        case .sportsBreakdown:
+            if viewModel.hasAnySport, let byDiscipline = viewModel.byDiscipline {
+                SportsBreakdownSection(
+                    byDiscipline: byDiscipline,
+                    viewModel: viewModel,
+                    weekStart: viewModel.weekStartDate,
+                    selectedDiscipline: $selectedDiscipline
+                )
+                .padding(.horizontal)
+            }
+
+        case .plannedSessions:
+            PlannedSessionsSection(
+                sessions: viewModel.plannedSessions,
+                hasPlan: viewModel.hasPlan,
+                onCreatePlan: { showingPlanCreator = true },
+                onSessionTap: { session in
+                    selectedPlannedSession = session
+                }
+            )
+            .padding(.horizontal)
+
+        case .upcomingSessions:
+            if !viewModel.upcomingSessions.isEmpty {
+                UpcomingSessionsSection(sessions: viewModel.upcomingSessions)
+                    .padding(.horizontal)
+            }
+
+        case .recentActivities:
+            if !viewModel.recentActivities.isEmpty {
+                RecentActivitiesSection(activities: viewModel.recentActivities)
+                    .padding(.horizontal)
             }
         }
     }
-    
-    private func value(for metric: DashboardMetric) -> String {
-        switch metric {
-        case .volume:
-            return summary.formattedDuration
-        case .distance:
-            return summary.formattedDistance
-        case .sessions:
-            return "\(summary.sessionsCount)"
-        case .elevation:
-            return "\(summary.totalElevation) m"
-        case .calories:
-            return "\(summary.totalCalories)"
-        }
-    }
 }
-
-struct KpiCard: View {
-    let metric: DashboardMetric
-    let value: String
-    let themeManager: ThemeManager
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: metric.icon)
-                    .foregroundColor(themeManager.accentColor)
-                Spacer()
-                Text(metric.unit)
-                    .font(.ecCaption)
-                    .foregroundColor(themeManager.textTertiary)
-            }
-            
-            Text(value)
-                .font(.ecH3)
-                .foregroundColor(themeManager.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            
-            Text(metric.rawValue)
-                .font(.ecCaption)
-                .foregroundColor(themeManager.textSecondary)
-        }
-        .padding(ECSpacing.md)
-        .background(themeManager.cardColor)
-        .cornerRadius(ECRadius.lg)
-        .overlay(
-            RoundedRectangle(cornerRadius: ECRadius.lg)
-                .stroke(themeManager.borderColor, lineWidth: themeManager.cardBorderWidth)
-        )
-        .shadow(color: themeManager.cardShadow, radius: themeManager.cardShadowRadius, x: 0, y: 2)
-    }
-}
-
 
 // MARK: - Week Progress Card
 

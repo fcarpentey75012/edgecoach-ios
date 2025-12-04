@@ -667,10 +667,6 @@ struct ActivityFileData: Decodable {
             maxSpeed = nil
         }
 
-        #if DEBUG
-        print("🏃 Speeds (km/h): avg=\(avgSpeed ?? 0), max=\(maxSpeed ?? 0)")
-        #endif
-
         hrAvg = try container.decodeIfPresent(Double.self, forKey: .hrAvg)
         hrMax = try container.decodeIfPresent(Double.self, forKey: .hrMax)
         hrMin = try container.decodeIfPresent(Double.self, forKey: .hrMin)
@@ -715,15 +711,6 @@ struct ActivityFileData: Decodable {
         }
 
         trimp = try container.decodeIfPresent(Double.self, forKey: .trimp)
-
-        #if DEBUG
-        if avgPower != nil || normalizedPower != nil {
-            print("⚡ Power: avg=\(avgPower ?? 0)W, NP=\(normalizedPower ?? 0)W, kJ=\(kilojoules ?? 0)")
-        }
-        if trainingStressScore != nil || trimp != nil {
-            print("📊 Load: TSS=\(trainingStressScore ?? 0), TRIMP=\(trimp ?? 0)")
-        }
-        #endif
     }
 
     // MARK: - Lap Deduplication
@@ -743,12 +730,6 @@ struct ActivityFileData: Decodable {
                 unique.append(lap)
             }
         }
-
-        #if DEBUG
-        if unique.count != laps.count {
-            print("🏃 Laps: Deduplicated from \(laps.count) to \(unique.count) laps")
-        }
-        #endif
 
         return unique
     }

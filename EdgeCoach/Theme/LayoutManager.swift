@@ -9,59 +9,65 @@ import SwiftUI
 
 /// Types de widgets disponibles sur le dashboard
 enum DashboardWidgetType: String, CaseIterable, Identifiable, Codable {
-    case weeklySummary = "weekly_summary"
+    case kpiSummary = "kpi_summary"
+    case performance = "performance"
     case weekProgress = "week_progress"
-    case trainingLoad = "training_load"
     case sportsBreakdown = "sports_breakdown"
     case plannedSessions = "planned_sessions"
     case upcomingSessions = "upcoming_sessions"
     case recentActivities = "recent_activities"
-    case quickActions = "quick_actions"
-    
+
     var id: String { rawValue }
-    
+
     var displayName: String {
         switch self {
-        case .weeklySummary: return "Résumé de la semaine"
-        case .weekProgress: return "Progression hebdo"
-        case .trainingLoad: return "Charge d'entraînement"
+        case .kpiSummary: return "Résumé"
+        case .performance: return "Performance"
+        case .weekProgress: return "Progression semaine"
         case .sportsBreakdown: return "Par sport"
         case .plannedSessions: return "Séances prévues"
         case .upcomingSessions: return "Prochaines séances"
         case .recentActivities: return "Activités récentes"
-        case .quickActions: return "Actions rapides"
         }
     }
-    
+
     var icon: String {
         switch self {
-        case .weeklySummary: return "calendar"
-        case .weekProgress: return "chart.bar.fill"
-        case .trainingLoad: return "waveform.path.ecg"
-        case .sportsBreakdown: return "figure.run"
+        case .kpiSummary: return "chart.bar.fill"
+        case .performance: return "gauge.with.dots.needle.67percent"
+        case .weekProgress: return "chart.line.uptrend.xyaxis"
+        case .sportsBreakdown: return "figure.run.square.stack"
         case .plannedSessions: return "calendar.badge.clock"
-        case .upcomingSessions: return "clock.arrow.circlepath"
-        case .recentActivities: return "clock.arrow.2.circlepath"
-        case .quickActions: return "bolt.fill"
+        case .upcomingSessions: return "calendar"
+        case .recentActivities: return "clock.arrow.circlepath"
         }
     }
-    
+
     var description: String {
         switch self {
-        case .weeklySummary: return "Volume, distance et nombre de séances"
-        case .weekProgress: return "Barre de progression vers l'objectif"
-        case .trainingLoad: return "ATL, CTL et TSB"
+        case .kpiSummary: return "Volume, distance, séances..."
+        case .performance: return "CS/D', CP/W', CSS"
+        case .weekProgress: return "Objectif hebdomadaire"
         case .sportsBreakdown: return "Répartition par discipline"
         case .plannedSessions: return "Séances du plan d'entraînement"
         case .upcomingSessions: return "Prochaines séances programmées"
         case .recentActivities: return "Dernières activités réalisées"
-        case .quickActions: return "Boutons d'action rapide"
         }
     }
-    
+
+    /// Indique si ce widget a des options de configuration
+    var isConfigurable: Bool {
+        switch self {
+        case .kpiSummary, .performance:
+            return true
+        default:
+            return false
+        }
+    }
+
     /// Widgets affichés par défaut
     static var defaultWidgets: [DashboardWidgetType] {
-        [.weeklySummary, .weekProgress, .sportsBreakdown, .plannedSessions, .recentActivities]
+        [.kpiSummary, .performance, .weekProgress, .sportsBreakdown, .plannedSessions, .recentActivities]
     }
 }
 

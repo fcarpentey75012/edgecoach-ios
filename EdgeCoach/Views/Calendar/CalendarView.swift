@@ -14,6 +14,9 @@ struct CalendarView: View {
     @State private var selectedActivity: Activity?
     @State private var selectedPlannedSession: PlannedSession?
 
+    // Debounce pour les changements de mois
+    @State private var monthChangeTask: Task<Void, Never>?
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -66,12 +69,18 @@ struct CalendarView: View {
             }
         }
         .task {
+            // Chargement initial non-bloquant - la vue s'affiche immédiatement
             if let userId = authViewModel.user?.id {
                 await viewModel.loadData(userId: userId)
             }
         }
         .onChange(of: viewModel.currentDate) { newValue in
-            Task {
+            // Debounce: annule la tâche précédente si l'utilisateur swipe rapidement
+            monthChangeTask?.cancel()
+            monthChangeTask = Task {
+                // Délai de 300ms pour éviter les appels multiples lors de swipes rapides
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                guard !Task.isCancelled else { return }
                 if let userId = authViewModel.user?.id {
                     await viewModel.loadData(userId: userId)
                 }

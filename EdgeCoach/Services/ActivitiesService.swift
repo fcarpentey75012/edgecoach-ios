@@ -12,6 +12,7 @@ import Foundation
 class ActivitiesService {
     static let shared = ActivitiesService()
     private let api = APIService.shared
+    private let cache = ActivityCacheService.shared
 
     private init() {}
 
@@ -99,6 +100,78 @@ class ActivitiesService {
         )
     }
 
+    // MARK: - Get Activities for Month (Cache-First)
+
+    /// Résultat du chargement avec cache
+    struct CachedResult {
+        let activities: [Activity]
+        let fromCache: Bool
+        let cacheDate: Date?
+    }
+
+    /// Récupère les activités avec stratégie cache-first
+    /// Retourne immédiatement le cache si disponible, puis met à jour en arrière-plan
+    func getActivitiesForMonthCached(
+        userId: String,
+        year: Int,
+        month: Int,
+        forceRefresh: Bool = false
+    ) async -> CachedResult {
+        // Si force refresh, ignorer le cache
+        if !forceRefresh {
+            // Essayer de charger depuis le cache
+            if let cached = cache.loadActivities(userId: userId, year: year, month: month) {
+                let cacheDate = cache.getCacheDate(userId: userId, year: year, month: month)
+                return CachedResult(activities: cached, fromCache: true, cacheDate: cacheDate)
+            }
+        }
+
+        // Pas de cache ou force refresh - charger depuis l'API
+        do {
+            let activities = try await getActivitiesForMonth(userId: userId, year: year, month: month)
+            // Sauvegarder en cache
+            cache.saveActivities(activities, userId: userId, year: year, month: month)
+            return CachedResult(activities: activities, fromCache: false, cacheDate: Date())
+        } catch {
+            // En cas d'erreur, retourner le cache même expiré
+            if let cached = cache.loadActivities(userId: userId, year: year, month: month) {
+                let cacheDate = cache.getCacheDate(userId: userId, year: year, month: month)
+                return CachedResult(activities: cached, fromCache: true, cacheDate: cacheDate)
+            }
+            return CachedResult(activities: [], fromCache: false, cacheDate: nil)
+        }
+    }
+
+    /// Rafraîchit le cache en arrière-plan et retourne les nouvelles données
+    func refreshActivitiesForMonth(
+        userId: String,
+        year: Int,
+        month: Int
+    ) async -> [Activity] {
+        do {
+            let activities = try await getActivitiesForMonth(userId: userId, year: year, month: month)
+            cache.saveActivities(activities, userId: userId, year: year, month: month)
+            return activities
+        } catch {
+            return []
+        }
+    }
+
+    /// Vérifie si le cache est valide pour un mois donné
+    func isCacheValid(userId: String, year: Int, month: Int) -> Bool {
+        return cache.isCacheValid(userId: userId, year: year, month: month)
+    }
+
+    /// Vide le cache pour un mois donné
+    func clearCache(userId: String, year: Int, month: Int) {
+        cache.clearCache(userId: userId, year: year, month: month)
+    }
+
+    /// Vide tout le cache
+    func clearAllCache() {
+        cache.clearAllCache()
+    }
+
     // MARK: - Get Activities for Date Range
 
     /// Récupère les activités pour une plage de dates
@@ -134,35 +207,10 @@ class ActivitiesService {
             "force_api_call": "true"  // Forcer pour avoir les record_data
         ]
 
-        #if DEBUG
-        print("🗺️ GPS: Fetching GPS data for date: \(dateStr)")
-        #endif
-
         let activities: [Activity] = try await api.get(
             "/activities/history",
             queryParams: params
         )
-
-        #if DEBUG
-        print("🗺️ GPS: Found \(activities.count) activities")
-        if let activity = activities.first {
-            print("🗺️ GPS: Activity ID: \(activity.id)")
-            print("🗺️ GPS: Has fileDatas: \(activity.fileDatas != nil)")
-            if let fileDatas = activity.fileDatas {
-                print("🗺️ GPS: Records count: \(fileDatas.records?.count ?? 0)")
-                print("🗺️ GPS: Laps count: \(fileDatas.laps?.count ?? 0)")
-                // Debug chaque lap
-                if let laps = fileDatas.laps {
-                    for (i, lap) in laps.enumerated() {
-                        print("🗺️ GPS: Lap[\(i)] idx=\(lap.lapIndex) dist=\(lap.distance ?? 0)m dur=\(lap.duration ?? 0)s hr=\(lap.avgHeartRate ?? 0) startTime=\(lap.startTime ?? 0)")
-                    }
-                }
-                if let firstRecord = fileDatas.records?.first {
-                    print("🗺️ GPS: First record - lat: \(firstRecord.positionLat ?? 0), lng: \(firstRecord.positionLong ?? 0)")
-                }
-            }
-        }
-        #endif
 
         guard let activity = activities.first else {
             return (nil, nil)

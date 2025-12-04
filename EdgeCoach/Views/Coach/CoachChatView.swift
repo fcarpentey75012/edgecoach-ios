@@ -7,14 +7,18 @@
 import SwiftUI
 
 // MARK: - CoachChatView (legacy wrapper)
+// NOTE: Cette vue n'est plus utilisée directement.
+// Utiliser CoachChatContentView avec un ChatViewModel partagé depuis MainTabView
+// pour éviter la duplication de ViewModel et améliorer les performances.
 
 struct CoachChatView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var themeManager: ThemeManager
-    @StateObject private var viewModel = ChatViewModel()
+    // Récupère le ChatViewModel depuis l'environnement au lieu d'en créer un nouveau
+    @EnvironmentObject var chatViewModel: ChatViewModel
 
     var body: some View {
-        CoachChatContentView(viewModel: viewModel)
+        CoachChatContentView(viewModel: chatViewModel)
     }
 }
 

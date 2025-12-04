@@ -323,8 +323,128 @@ enum DashboardMetric: String, CaseIterable, Codable, Identifiable {
     case sessions = "Séances"
     case elevation = "Dénivelé"
     case calories = "Calories"
+    // Performance metrics
+    case performanceRunning = "Perf. Course"
+    case performanceCycling = "Perf. Cyclisme"
+    case performanceSwimming = "Perf. Natation"
     // case ctl = "Forme (CTL)" // À activer quand le calcul CTL sera prêt
     // case weight = "Poids"    // À activer quand le service UserMetrics sera prêt
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .volume: return "clock"
+        case .distance: return "map"
+        case .sessions: return "figure.run"
+        case .elevation: return "mountain.2"
+        case .calories: return "flame"
+        case .performanceRunning: return "figure.run"
+        case .performanceCycling: return "bicycle"
+        case .performanceSwimming: return "figure.pool.swim"
+        }
+    }
+
+    var unit: String {
+        switch self {
+        case .volume: return "h"
+        case .distance: return "km"
+        case .sessions: return ""
+        case .elevation: return "m"
+        case .calories: return "kcal"
+        case .performanceRunning: return ""
+        case .performanceCycling: return ""
+        case .performanceSwimming: return ""
+        }
+    }
+
+    /// Indique si cette métrique est une card de performance (affichage spécial)
+    var isPerformanceCard: Bool {
+        switch self {
+        case .performanceRunning, .performanceCycling, .performanceSwimming:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
+struct DashboardPreferences: Codable {
+    var timeScope: DashboardTimeScope = .week
+    var selectedMetrics: [DashboardMetric] = [.volume, .distance, .sessions]
+
+    // Nouvelles préférences pour la KPI Summary Card
+    var kpiTimeScope: DashboardTimeScope = .week
+    var selectedKPIMetrics: [KPIMetricType] = [.volume, .distance, .sessions]
+}
+
+// MARK: - Widget Configuration Types
+
+/// Configuration pour la KPI Summary Card
+struct KPISummaryConfig: Codable {
+    var timeScope: DashboardTimeScope = .week
+    var selectedMetrics: [KPIMetricType] = [.volume, .distance, .sessions]
+}
+
+/// Configuration pour le widget Performance
+struct PerformanceWidgetConfig: Codable {
+    var showRunning: Bool = true
+    var showCycling: Bool = true
+    var showSwimming: Bool = true
+}
+
+/// Configuration d'un widget individuel
+struct DashboardWidgetConfig: Codable, Identifiable, Equatable {
+    let type: DashboardWidgetType
+    var isEnabled: Bool
+    var order: Int
+
+    var id: String { type.rawValue }
+
+    init(type: DashboardWidgetType, isEnabled: Bool = true, order: Int = 0) {
+        self.type = type
+        self.isEnabled = isEnabled
+        self.order = order
+    }
+}
+
+/// Préférences globales des widgets du dashboard
+struct DashboardWidgetsPreferences: Codable {
+    var widgets: [DashboardWidgetConfig]
+    var kpiConfig: KPISummaryConfig
+    var performanceConfig: PerformanceWidgetConfig
+
+    /// Widgets actifs triés par ordre
+    var enabledWidgets: [DashboardWidgetConfig] {
+        widgets
+            .filter { $0.isEnabled }
+            .sorted { $0.order < $1.order }
+    }
+
+    /// Configuration par défaut
+    static var `default`: DashboardWidgetsPreferences {
+        DashboardWidgetsPreferences(
+            widgets: DashboardWidgetType.allCases.enumerated().map { index, type in
+                DashboardWidgetConfig(
+                    type: type,
+                    isEnabled: DashboardWidgetType.defaultWidgets.contains(type),
+                    order: index
+                )
+            },
+            kpiConfig: KPISummaryConfig(),
+            performanceConfig: PerformanceWidgetConfig()
+        )
+    }
+}
+
+// MARK: - KPI Metric Type (pour la KPI Summary Card)
+
+enum KPIMetricType: String, CaseIterable, Codable, Identifiable {
+    case volume = "Volume"
+    case distance = "Distance"
+    case sessions = "Séances"
+    case elevation = "Dénivelé"
+    case calories = "Calories"
 
     var id: String { rawValue }
 
@@ -347,9 +467,4 @@ enum DashboardMetric: String, CaseIterable, Codable, Identifiable {
         case .calories: return "kcal"
         }
     }
-}
-
-struct DashboardPreferences: Codable {
-    var timeScope: DashboardTimeScope = .week
-    var selectedMetrics: [DashboardMetric] = [.volume, .distance, .sessions]
 }

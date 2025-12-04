@@ -52,7 +52,9 @@
 		E10000000000000000000051 /* IconManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000051 /* IconManager.swift */; };
 		E10000000000000000000052 /* LayoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000052 /* LayoutManager.swift */; };
 		E10000000000000000000053 /* AppearanceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000053 /* AppearanceSettingsView.swift */; };
-		E10000000000000000000054 /* DashboardSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000054 /* DashboardSettingsView.swift */; };
+		E10000000000000000000101 /* PerformanceMiniCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000101 /* PerformanceMiniCards.swift */; };
+		E10000000000000000000102 /* KPISummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000102 /* KPISummaryCard.swift */; };
+		E10000000000000000000105 /* WidgetConfigSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000105 /* WidgetConfigSheets.swift */; };
 		E10000000000000000000056 /* Gear.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000056 /* Gear.swift */; };
 		E10000000000000000000060 /* CustomAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000060 /* CustomAnalysisService.swift */; };
 		E10000000000000000000061 /* CustomAnalysesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000061 /* CustomAnalysesSettingsView.swift */; };
@@ -68,6 +70,11 @@
 		E10000000000000000000081 /* LogbookComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000081 /* LogbookComponents.swift */; };
 		E10000000000000000000082 /* ChartDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000082 /* ChartDataService.swift */; };
 		E10000000000000000000083 /* InteractiveChartContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000083 /* InteractiveChartContainer.swift */; };
+		E10000000000000000000090 /* PerformanceReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000090 /* PerformanceReport.swift */; };
+		E10000000000000000000091 /* PerformanceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000091 /* PerformanceViewModel.swift */; };
+		E10000000000000000000092 /* PerformanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000092 /* PerformanceView.swift */; };
+		E10000000000000000000093 /* PerformanceDetailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000093 /* PerformanceDetailViews.swift */; };
+		E10000000000000000000100 /* ActivityCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000100 /* ActivityCacheService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -96,6 +103,7 @@
 		E20000000000000000000012 /* UserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserService.swift; sourceTree = "<group>"; };
 		E20000000000000000000013 /* DashboardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardService.swift; sourceTree = "<group>"; };
 		E20000000000000000000014 /* ActivitiesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivitiesService.swift; sourceTree = "<group>"; };
+		E20000000000000000000100 /* ActivityCacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityCacheService.swift; sourceTree = "<group>"; };
 		E20000000000000000000015 /* PlansService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlansService.swift; sourceTree = "<group>"; };
 		E20000000000000000000016 /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatService.swift; sourceTree = "<group>"; };
 		E20000000000000000000017 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
@@ -127,7 +135,9 @@
 		E20000000000000000000051 /* IconManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconManager.swift; sourceTree = "<group>"; };
 		E20000000000000000000052 /* LayoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManager.swift; sourceTree = "<group>"; };
 		E20000000000000000000053 /* AppearanceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceSettingsView.swift; sourceTree = "<group>"; };
-		E20000000000000000000054 /* DashboardSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSettingsView.swift; sourceTree = "<group>"; };
+		E20000000000000000000101 /* PerformanceMiniCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceMiniCards.swift; sourceTree = "<group>"; };
+		E20000000000000000000102 /* KPISummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KPISummaryCard.swift; sourceTree = "<group>"; };
+		E20000000000000000000105 /* WidgetConfigSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetConfigSheets.swift; sourceTree = "<group>"; };
 		E20000000000000000000055 /* SessionAnalysisSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAnalysisSheet.swift; sourceTree = "<group>"; };
 		E20000000000000000000056 /* Gear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gear.swift; sourceTree = "<group>"; };
 		E20000000000000000000060 /* CustomAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomAnalysisService.swift; sourceTree = "<group>"; };
@@ -144,6 +154,10 @@
 		E20000000000000000000081 /* LogbookComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookComponents.swift; sourceTree = "<group>"; };
 		E20000000000000000000082 /* ChartDataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartDataService.swift; sourceTree = "<group>"; };
 		E20000000000000000000083 /* InteractiveChartContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractiveChartContainer.swift; sourceTree = "<group>"; };
+		E20000000000000000000090 /* PerformanceReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceReport.swift; sourceTree = "<group>"; };
+		E20000000000000000000091 /* PerformanceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceViewModel.swift; sourceTree = "<group>"; };
+		E20000000000000000000092 /* PerformanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceView.swift; sourceTree = "<group>"; };
+		E20000000000000000000093 /* PerformanceDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceDetailViews.swift; sourceTree = "<group>"; };
 		F8C0177D2ED9EBD900E7CC41 /* EdgeCoachUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EdgeCoachUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -226,6 +240,7 @@
 				E20000000000000000000045 /* SportType.swift */,
 				E20000000000000000000056 /* Gear.swift */,
 				E20000000000000000000070 /* MessageAttachment.swift */,
+				E20000000000000000000090 /* PerformanceReport.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -237,6 +252,7 @@
 				E20000000000000000000012 /* UserService.swift */,
 				E20000000000000000000013 /* DashboardService.swift */,
 				E20000000000000000000014 /* ActivitiesService.swift */,
+				E20000000000000000000100 /* ActivityCacheService.swift */,
 				E20000000000000000000015 /* PlansService.swift */,
 				E20000000000000000000016 /* ChatService.swift */,
 				E20000000000000000000048 /* CoachService.swift */,
@@ -259,6 +275,7 @@
 				E20000000000000000000018 /* DashboardViewModel.swift */,
 				E20000000000000000000019 /* CalendarViewModel.swift */,
 				E20000000000000000000020 /* ChatViewModel.swift */,
+				E20000000000000000000091 /* PerformanceViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -294,7 +311,9 @@
 			isa = PBXGroup;
 			children = (
 				E20000000000000000000025 /* DashboardView.swift */,
-				E20000000000000000000054 /* DashboardSettingsView.swift */,
+				E20000000000000000000101 /* PerformanceMiniCards.swift */,
+				E20000000000000000000102 /* KPISummaryCard.swift */,
+				E20000000000000000000105 /* WidgetConfigSheets.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -320,6 +339,8 @@
 			isa = PBXGroup;
 			children = (
 				E20000000000000000000028 /* StatsView.swift */,
+				E20000000000000000000092 /* PerformanceView.swift */,
+				E20000000000000000000093 /* PerformanceDetailViews.swift */,
 			);
 			path = Stats;
 			sourceTree = "<group>";
@@ -495,6 +516,7 @@
 				E10000000000000000000012 /* UserService.swift in Sources */,
 				E10000000000000000000013 /* DashboardService.swift in Sources */,
 				E10000000000000000000014 /* ActivitiesService.swift in Sources */,
+				E10000000000000000000100 /* ActivityCacheService.swift in Sources */,
 				E10000000000000000000015 /* PlansService.swift in Sources */,
 				E10000000000000000000016 /* ChatService.swift in Sources */,
 				E10000000000000000000017 /* AuthViewModel.swift in Sources */,
@@ -506,7 +528,9 @@
 				E10000000000000000000023 /* LoginView.swift in Sources */,
 				E10000000000000000000024 /* RegisterView.swift in Sources */,
 				E10000000000000000000025 /* DashboardView.swift in Sources */,
-				E10000000000000000000054 /* DashboardSettingsView.swift in Sources */,
+				E10000000000000000000101 /* PerformanceMiniCards.swift in Sources */,
+				E10000000000000000000102 /* KPISummaryCard.swift in Sources */,
+				E10000000000000000000105 /* WidgetConfigSheets.swift in Sources */,
 				E10000000000000000000026 /* CalendarView.swift in Sources */,
 				E10000000000000000000027 /* CoachChatView.swift in Sources */,
 				E10000000000000000000028 /* StatsView.swift in Sources */,
@@ -541,6 +565,10 @@
 				E10000000000000000000081 /* LogbookComponents.swift in Sources */,
 				E10000000000000000000082 /* ChartDataService.swift in Sources */,
 				E10000000000000000000083 /* InteractiveChartContainer.swift in Sources */,
+				E10000000000000000000090 /* PerformanceReport.swift in Sources */,
+				E10000000000000000000091 /* PerformanceViewModel.swift in Sources */,
+				E10000000000000000000092 /* PerformanceView.swift in Sources */,
+				E10000000000000000000093 /* PerformanceDetailViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

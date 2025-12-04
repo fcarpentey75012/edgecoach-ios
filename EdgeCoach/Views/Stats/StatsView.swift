@@ -80,63 +80,105 @@ struct StatsAPIEvolutionPoint: Codable {
     let distance: Double
 }
 
+// MARK: - Stats Tab Selection
+
+enum StatsTabSelection: String, CaseIterable {
+    case performance = "Performance"
+    case stats = "Statistiques"
+}
+
 // MARK: - Stats View
 
 struct StatsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var themeManager: ThemeManager
     @StateObject private var viewModel = StatsViewModel()
+    @State private var selectedTab: StatsTabSelection = .performance
+    @State private var hasLoadedOnce = false
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: ECSpacing.lg) {
-                    // Period Selector
-                    PeriodSelector(
-                        selectedPeriod: $viewModel.selectedPeriod
-                    )
-
-                    // Summary Cards
-                    if let stats = viewModel.statsData {
-                        SummaryCardsView(summary: stats.summary)
+            VStack(spacing: 0) {
+                // Tab Selector
+                Picker("Section", selection: $selectedTab) {
+                    ForEach(StatsTabSelection.allCases, id: \.self) { tab in
+                        Text(tab.rawValue).tag(tab)
                     }
-
-                    // Volume Chart
-                    VolumeChartCard(viewModel: viewModel)
-
-                    // TSS Chart
-                    TSSChartCard(viewModel: viewModel)
-
-                    // Discipline Distribution
-                    DisciplineDistributionCard(viewModel: viewModel)
-
-                    // Personal Records
-                    if !viewModel.personalRecords.isEmpty {
-                        PersonalRecordsCard(records: viewModel.personalRecords)
-                    }
-
-                    // Zones Distribution
-                    ZonesDistributionCard(viewModel: viewModel)
                 }
-                .padding()
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.top, ECSpacing.sm)
+
+                // Content - affichage immédiat, le loading est géré par les sous-vues
+                switch selectedTab {
+                case .stats:
+                    StatsContentView(viewModel: viewModel)
+                case .performance:
+                    PerformanceView()
+                }
             }
             .background(themeManager.backgroundColor)
-            .navigationTitle("Statistiques")
-            .refreshable {
-                if let userId = authViewModel.user?.id {
-                    await viewModel.refresh(userId: userId)
-                }
-            }
-            .overlay {
-                if viewModel.isLoading && viewModel.statsData == nil {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                }
-            }
+            .navigationTitle(selectedTab.rawValue)
         }
         .task {
+            // Charger les données une seule fois au premier affichage
+            guard !hasLoadedOnce else { return }
+            hasLoadedOnce = true
             if let userId = authViewModel.user?.id {
                 await viewModel.loadData(userId: userId)
+            }
+        }
+    }
+}
+
+// MARK: - Stats Content View (Original Stats)
+
+struct StatsContentView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var themeManager: ThemeManager
+    @ObservedObject var viewModel: StatsViewModel
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: ECSpacing.lg) {
+                // Period Selector
+                PeriodSelector(
+                    selectedPeriod: $viewModel.selectedPeriod
+                )
+
+                // Summary Cards
+                if let stats = viewModel.statsData {
+                    SummaryCardsView(summary: stats.summary)
+                }
+
+                // Volume Chart
+                VolumeChartCard(viewModel: viewModel)
+
+                // TSS Chart
+                TSSChartCard(viewModel: viewModel)
+
+                // Discipline Distribution
+                DisciplineDistributionCard(viewModel: viewModel)
+
+                // Personal Records
+                if !viewModel.personalRecords.isEmpty {
+                    PersonalRecordsCard(records: viewModel.personalRecords)
+                }
+
+                // Zones Distribution
+                ZonesDistributionCard(viewModel: viewModel)
+            }
+            .padding()
+        }
+        .refreshable {
+            if let userId = authViewModel.user?.id {
+                await viewModel.refresh(userId: userId)
+            }
+        }
+        .overlay {
+            if viewModel.isLoading && viewModel.statsData == nil {
+                ProgressView()
+                    .scaleEffect(1.5)
             }
         }
     }

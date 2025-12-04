@@ -17,10 +17,10 @@ class CalendarViewModel: ObservableObject {
     @Published var plannedSessions: [PlannedSession] = []
 
     @Published var isLoading: Bool = false
+    @Published var isRefreshing: Bool = false  // Pour le rafraîchissement en arrière-plan
     @Published var error: String?
 
-    // Cache des activités par mois pour éviter les rechargements
-    private var activitiesCache: [String: [Activity]] = [:]
+    // Cache en mémoire pour les séances planifiées uniquement
     private var plannedSessionsCache: [String: [PlannedSession]] = [:]
 
     // Navigation
@@ -32,6 +32,21 @@ class CalendarViewModel: ObservableObject {
 
     private let activitiesService = ActivitiesService.shared
     private let plansService = PlansService.shared
+
+    // MARK: - Static DateFormatters (évite création répétée)
+    private static let monthYearFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        formatter.locale = Locale(identifier: "fr_FR")
+        return formatter
+    }()
+
+    private static let selectedDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE d MMMM"
+        formatter.locale = Locale(identifier: "fr_FR")
+        return formatter
+    }()
 
     // MARK: - Calendar View Mode
 
@@ -48,42 +63,64 @@ class CalendarViewModel: ObservableObject {
         let month = calendar.component(.month, from: currentDate)
         let monthKey = "\(year)-\(month)"
 
-        // Éviter de recharger si le mois est déjà en cache
-        guard forceReload || !loadedMonths.contains(monthKey) else {
-            return
+        // Charger les activités avec stratégie cache-first
+        await loadActivitiesCacheFirst(userId: userId, year: year, month: month, forceReload: forceReload)
+
+        // Charger les séances planifiées (cache mémoire)
+        if !forceReload, let cachedPlanned = plannedSessionsCache[monthKey] {
+            plannedSessions = cachedPlanned
+        } else {
+            await loadPlannedSessions(userId: userId, year: year, month: month)
+            plannedSessionsCache[monthKey] = plannedSessions
         }
-
-        isLoading = true
-        error = nil
-
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                await self.loadActivities(userId: userId, year: year, month: month)
-            }
-
-            group.addTask {
-                await self.loadPlannedSessions(userId: userId, year: year, month: month)
-            }
-        }
-
-        loadedMonths.insert(monthKey)
-        isLoading = false
     }
 
-    // MARK: - Load Activities
+    // MARK: - Load Activities (Cache-First)
 
-    private func loadActivities(userId: String, year: Int, month: Int) async {
-        do {
-            completedActivities = try await activitiesService.getActivitiesForMonth(
-                userId: userId,
-                year: year,
-                month: month
-            )
-        } catch {
-            #if DEBUG
-            print("Failed to load activities: \(error)")
-            #endif
+    private func loadActivitiesCacheFirst(userId: String, year: Int, month: Int, forceReload: Bool) async {
+        // 1. Charger depuis le cache persistant (instantané)
+        let result = await activitiesService.getActivitiesForMonthCached(
+            userId: userId,
+            year: year,
+            month: month,
+            forceRefresh: forceReload
+        )
+
+        completedActivities = result.activities
+
+        // 2. Si les données viennent du cache, rafraîchir en arrière-plan
+        if result.fromCache && !forceReload {
+            isRefreshing = true
+            // Rafraîchir en arrière-plan
+            Task {
+                let freshActivities = await activitiesService.refreshActivitiesForMonth(
+                    userId: userId,
+                    year: year,
+                    month: month
+                )
+                // Mettre à jour seulement si on est toujours sur le même mois
+                let currentYear = Calendar.current.component(.year, from: currentDate)
+                let currentMonth = Calendar.current.component(.month, from: currentDate)
+                if currentYear == year && currentMonth == month && !freshActivities.isEmpty {
+                    // Éviter re-render si les données sont identiques
+                    if !areActivitiesEqual(completedActivities, freshActivities) {
+                        completedActivities = freshActivities
+                    }
+                }
+                isRefreshing = false
+            }
         }
+    }
+
+    // MARK: - Helpers
+
+    /// Compare deux listes d'activités pour éviter les mises à jour inutiles
+    private func areActivitiesEqual(_ a: [Activity], _ b: [Activity]) -> Bool {
+        guard a.count == b.count else { return false }
+        for (activityA, activityB) in zip(a, b) {
+            if activityA.id != activityB.id { return false }
+        }
+        return true
     }
 
     // MARK: - Load Planned Sessions
@@ -121,10 +158,7 @@ class CalendarViewModel: ObservableObject {
     // MARK: - Date Helpers
 
     var monthYearString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        formatter.locale = Locale(identifier: "fr_FR")
-        return formatter.string(from: currentDate).capitalized
+        Self.monthYearFormatter.string(from: currentDate).capitalized
     }
 
     var daysInMonth: [Date] {
@@ -219,10 +253,7 @@ class CalendarViewModel: ObservableObject {
     }
 
     var selectedDateFormatted: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE d MMMM"
-        formatter.locale = Locale(identifier: "fr_FR")
-        return formatter.string(from: selectedDate).capitalized
+        Self.selectedDateFormatter.string(from: selectedDate).capitalized
     }
 
     // MARK: - Calendar Grid helpers (for CalendarView)
