@@ -305,7 +305,7 @@ struct WidgetRowView: View {
 // MARK: - Environment Key
 
 private struct LayoutManagerKey: EnvironmentKey {
-    @MainActor static let defaultValue = LayoutManager.shared
+    nonisolated(unsafe) static let defaultValue = LayoutManager.shared
 }
 
 extension EnvironmentValues {

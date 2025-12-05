@@ -75,6 +75,13 @@
 		E10000000000000000000092 /* PerformanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000092 /* PerformanceView.swift */; };
 		E10000000000000000000093 /* PerformanceDetailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000093 /* PerformanceDetailViews.swift */; };
 		E10000000000000000000100 /* ActivityCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000100 /* ActivityCacheService.swift */; };
+		E10000000000000000000110 /* MacroPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000110 /* MacroPlan.swift */; };
+		E10000000000000000000111 /* MacroPlanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000111 /* MacroPlanService.swift */; };
+		E10000000000000000000112 /* MacroPlanCreatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000112 /* MacroPlanCreatorView.swift */; };
+		E10000000000000000000113 /* MacroPlanDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000113 /* MacroPlanDetailView.swift */; };
+		E10000000000000000000120 /* TrainingObjective.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000120 /* TrainingObjective.swift */; };
+		E10000000000000000000121 /* ObjectiveEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000121 /* ObjectiveEditorView.swift */; };
+		E10000000000000000000122 /* ObjectivesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000122 /* ObjectivesListView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -158,6 +165,12 @@
 		E20000000000000000000091 /* PerformanceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceViewModel.swift; sourceTree = "<group>"; };
 		E20000000000000000000092 /* PerformanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceView.swift; sourceTree = "<group>"; };
 		E20000000000000000000093 /* PerformanceDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceDetailViews.swift; sourceTree = "<group>"; };
+		E20000000000000000000110 /* MacroPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroPlan.swift; sourceTree = "<group>"; };
+		E20000000000000000000111 /* MacroPlanService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroPlanService.swift; sourceTree = "<group>"; };
+		E20000000000000000000112 /* MacroPlanCreatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroPlanCreatorView.swift; sourceTree = "<group>"; };
+		E20000000000000000000120 /* TrainingObjective.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingObjective.swift; sourceTree = "<group>"; };
+		E20000000000000000000121 /* ObjectiveEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectiveEditorView.swift; sourceTree = "<group>"; };
+		E20000000000000000000122 /* ObjectivesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectivesListView.swift; sourceTree = "<group>"; };
 		F8C0177D2ED9EBD900E7CC41 /* EdgeCoachUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EdgeCoachUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -241,6 +254,8 @@
 				E20000000000000000000056 /* Gear.swift */,
 				E20000000000000000000070 /* MessageAttachment.swift */,
 				E20000000000000000000090 /* PerformanceReport.swift */,
+				E20000000000000000000110 /* MacroPlan.swift */,
+				E20000000000000000000120 /* TrainingObjective.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -264,6 +279,7 @@
 				E20000000000000000000071 /* MediaService.swift */,
 				E20000000000000000000072 /* AudioRecorderService.swift */,
 				E20000000000000000000082 /* ChartDataService.swift */,
+				E20000000000000000000111 /* MacroPlanService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -376,6 +392,9 @@
 			isa = PBXGroup;
 			children = (
 				E20000000000000000000046 /* TrainingPlanCreatorView.swift */,
+				E20000000000000000000112 /* MacroPlanCreatorView.swift */,
+				E20000000000000000000121 /* ObjectiveEditorView.swift */,
+				E20000000000000000000122 /* ObjectivesListView.swift */,
 			);
 			path = Plans;
 			sourceTree = "<group>";
@@ -545,6 +564,12 @@
 				E10000000000000000000045 /* SportType.swift in Sources */,
 				E10000000000000000000056 /* Gear.swift in Sources */,
 				E10000000000000000000046 /* TrainingPlanCreatorView.swift in Sources */,
+				E10000000000000000000110 /* MacroPlan.swift in Sources */,
+				E10000000000000000000111 /* MacroPlanService.swift in Sources */,
+				E10000000000000000000112 /* MacroPlanCreatorView.swift in Sources */,
+				E10000000000000000000120 /* TrainingObjective.swift in Sources */,
+				E10000000000000000000121 /* ObjectiveEditorView.swift in Sources */,
+				E10000000000000000000122 /* ObjectivesListView.swift in Sources */,
 				E10000000000000000000047 /* DisciplineSessionsView.swift in Sources */,
 				E10000000000000000000055 /* SessionAnalysisSheet.swift in Sources */,
 				E10000000000000000000050 /* ThemeManager.swift in Sources */,

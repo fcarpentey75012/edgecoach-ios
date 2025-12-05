@@ -5,6 +5,68 @@
 
 import Foundation
 
+// MARK: - Activity Light (Calendar Listing)
+
+/// Modèle léger pour l'affichage calendrier (endpoint /activities/calendar)
+/// Contient uniquement les champs nécessaires pour le listing
+struct ActivityLight: Codable, Identifiable, Hashable {
+    let id: String
+    let date: String
+    let sport: String?
+    let name: String?
+    let duration: Int?      // en secondes
+    let distance: Double?   // en km
+    let tss: Int?
+
+    /// Discipline calculée depuis le sport
+    var discipline: Discipline {
+        Discipline.from(sport: sport)
+    }
+
+    /// Date parsée
+    var dateValue: Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        if let date = formatter.date(from: date) {
+            return date
+        }
+        let simpleFormatter = DateFormatter()
+        simpleFormatter.dateFormat = "yyyy-MM-dd"
+        return simpleFormatter.date(from: date)
+    }
+
+    /// Durée formatée (ex: "1:30" ou "45min")
+    var formattedDuration: String? {
+        guard let dur = duration, dur > 0 else { return nil }
+        let hours = dur / 3600
+        let minutes = (dur % 3600) / 60
+        if hours > 0 {
+            return String(format: "%d:%02d", hours, minutes)
+        } else {
+            return "\(minutes)min"
+        }
+    }
+
+    /// Distance formatée (ex: "45.5 km" ou "1500 m")
+    var formattedDistance: String? {
+        guard let dist = distance, dist > 0 else { return nil }
+        if discipline == .natation {
+            return String(format: "%.0f m", dist * 1000)
+        }
+        if dist < 1 {
+            return String(format: "%.0f m", dist * 1000)
+        }
+        return dist.truncatingRemainder(dividingBy: 1) == 0
+            ? String(format: "%.0f km", dist)
+            : String(format: "%.1f km", dist)
+    }
+
+    /// Titre affiché
+    var displayTitle: String {
+        name ?? discipline.displayName
+    }
+}
+
 // MARK: - Discipline
 
 enum Discipline: String, Codable, CaseIterable, Identifiable {
@@ -26,7 +88,7 @@ enum Discipline: String, Codable, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .cyclisme: return "bicycle"
+        case .cyclisme: return "figure.outdoor.cycle"
         case .course: return "figure.run"
         case .natation: return "figure.pool.swim"
         case .autre: return "figure.strengthtraining.functional"
@@ -240,6 +302,9 @@ struct Activity: Codable, Identifiable, Hashable {
         // === SOURCE FICHIER ===
         try container.encodeIfPresent(fileUrl, forKey: .fileUrl)
         try container.encodeIfPresent(fileHash, forKey: .fileHash)
+
+        // === DONNÉES COMPLÈTES ===
+        try container.encodeIfPresent(fileDatas, forKey: .fileDatas)
 
         // === MÉTADONNÉES ===
         try container.encodeIfPresent(cachedAt, forKey: .cachedAt)
@@ -511,7 +576,7 @@ struct ZonesDict: Codable {
 
 // MARK: - Activity File Data
 
-struct ActivityFileData: Decodable {
+struct ActivityFileData: Codable {
     let records: [ActivityRecord]?
     let laps: [ActivityLap]?
     let duration: Double?
@@ -713,6 +778,36 @@ struct ActivityFileData: Decodable {
         trimp = try container.decodeIfPresent(Double.self, forKey: .trimp)
     }
 
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(records, forKey: .records)
+        try container.encodeIfPresent(laps, forKey: .laps)
+        try container.encodeIfPresent(duration, forKey: .duration)
+        try container.encodeIfPresent(movingTime, forKey: .movingTime)
+        try container.encodeIfPresent(distance, forKey: .distance)
+        try container.encodeIfPresent(ascent, forKey: .ascent)
+        try container.encodeIfPresent(descent, forKey: .descent)
+        try container.encodeIfPresent(avgSpeed, forKey: .avgSpeed)
+        try container.encodeIfPresent(maxSpeed, forKey: .maxSpeed)
+        try container.encodeIfPresent(hrAvg, forKey: .hrAvg)
+        try container.encodeIfPresent(hrMax, forKey: .hrMax)
+        try container.encodeIfPresent(hrMin, forKey: .hrMin)
+        try container.encodeIfPresent(cadenceAvg, forKey: .cadenceAvg)
+        try container.encodeIfPresent(cadenceMax, forKey: .cadenceMax)
+        try container.encodeIfPresent(calories, forKey: .calories)
+        try container.encodeIfPresent(startTime, forKey: .startTime)
+        try container.encodeIfPresent(endTime, forKey: .endTime)
+        try container.encodeIfPresent(altitudeAvg, forKey: .altitudeAvg)
+        try container.encodeIfPresent(altitudeMin, forKey: .altitudeMin)
+        try container.encodeIfPresent(altitudeMax, forKey: .altitudeMax)
+        try container.encodeIfPresent(avgPower, forKey: .avgPower)
+        try container.encodeIfPresent(maxPower, forKey: .maxPower)
+        try container.encodeIfPresent(normalizedPower, forKey: .normalizedPower)
+        try container.encodeIfPresent(kilojoules, forKey: .kilojoules)
+        try container.encodeIfPresent(trainingStressScore, forKey: .trainingStressScore)
+        try container.encodeIfPresent(trimp, forKey: .trimp)
+    }
+
     // MARK: - Lap Deduplication
 
     /// Déduplique les laps qui ont exactement les mêmes données
@@ -741,7 +836,7 @@ struct ActivityFileData: Decodable {
 /// - Format Garmin FIT: position_lat/position_long (en semicircles)
 /// - Format TCX: lat/lng ou lat/lon
 /// - Format standard: latitude/longitude
-struct ActivityRecord: Decodable {
+struct ActivityRecord: Codable {
     let timestamp: Double?
     let positionLat: Double?
     let positionLong: Double?
@@ -946,6 +1041,23 @@ struct ActivityRecord: Decodable {
         pedalSmoothness = try container.decodeIfPresent(Double.self, forKey: .pedalSmoothness)
 
     }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(timestamp, forKey: .timestamp)
+        try container.encodeIfPresent(positionLat, forKey: .positionLat)
+        try container.encodeIfPresent(positionLong, forKey: .positionLong)
+        try container.encodeIfPresent(distance, forKey: .distance)
+        try container.encodeIfPresent(altitude, forKey: .altitude)
+        try container.encodeIfPresent(heartRate, forKey: .heartRate)
+        try container.encodeIfPresent(cadence, forKey: .cadence)
+        try container.encodeIfPresent(power, forKey: .power)
+        try container.encodeIfPresent(speed, forKey: .speed)
+        try container.encodeIfPresent(temperature, forKey: .temperature)
+        try container.encodeIfPresent(leftRightBalance, forKey: .leftRightBalance)
+        try container.encodeIfPresent(torqueEffectiveness, forKey: .torqueEffectiveness)
+        try container.encodeIfPresent(pedalSmoothness, forKey: .pedalSmoothness)
+    }
 }
 
 // MARK: - Activity Lap
@@ -953,7 +1065,7 @@ struct ActivityRecord: Decodable {
 /// Supporte plusieurs formats de données laps de l'API:
 /// - Format Garmin FIT: total_elapsed_time, avg_speed (m/s), avg_heart_rate, avg_power, avg_cadence
 /// - Format traité: duration, avg_speed_kmh, hr_avg, tpx_ext_stats.Watts.avg, cadence_avg
-struct ActivityLap: Decodable, Identifiable {
+struct ActivityLap: Codable, Identifiable {
     // ID unique - assigné après décodage
     var lapIndex: Int = 0
     var id: Int { lapIndex }
@@ -1146,6 +1258,23 @@ struct ActivityLap: Decodable, Identifiable {
 
         // Calories
         calories = try container.decodeIfPresent(Double.self, forKey: .calories)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(startTime, forKey: .startTime)
+        try container.encodeIfPresent(distance, forKey: .distance)
+        try container.encodeIfPresent(duration, forKey: .duration)
+        try container.encodeIfPresent(avgSpeedKmh, forKey: .avgSpeedKmh)
+        try container.encodeIfPresent(maxSpeedKmh, forKey: .maxSpeedKmh)
+        try container.encodeIfPresent(avgHeartRate, forKey: .avgHeartRate)
+        try container.encodeIfPresent(maxHeartRate, forKey: .maxHeartRate)
+        try container.encodeIfPresent(avgPower, forKey: .avgPower)
+        try container.encodeIfPresent(maxPower, forKey: .maxPower)
+        try container.encodeIfPresent(avgCadence, forKey: .avgCadence)
+        try container.encodeIfPresent(ascent, forKey: .ascent)
+        try container.encodeIfPresent(descent, forKey: .descent)
+        try container.encodeIfPresent(calories, forKey: .calories)
     }
 
     // MARK: - Computed Properties

@@ -116,7 +116,7 @@ struct EdgeCoachWidgetLiveActivity: Widget {
     func icon(for type: String) -> String {
         switch type {
         case "Run": return "figure.run"
-        case "Bike": return "bicycle"
+        case "Bike": return "figure.outdoor.cycle"
         case "Swim": return "figure.pool.swim"
         default: return "figure.mixed.cardio"
         }

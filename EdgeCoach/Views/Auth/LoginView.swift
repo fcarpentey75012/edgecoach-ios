@@ -153,10 +153,10 @@ struct LoginView: View {
 
 // MARK: - Themed Text Field Style
 
+@MainActor
 struct ECThemedTextFieldStyle: TextFieldStyle {
     let themeManager: ThemeManager
-    
-    @MainActor
+
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
             .padding()

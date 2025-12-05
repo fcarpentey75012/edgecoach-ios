@@ -37,7 +37,7 @@ enum AppIcon: String, CaseIterable {
     case settings = "gearshape"
     
     // MARK: - Sports
-    case cycling = "bicycle"
+    case cycling = "figure.outdoor.cycle"
     case running = "figure.run"
     case swimming = "figure.pool.swim"
     case triathlon = "figure.mixed.cardio"

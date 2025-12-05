@@ -1019,7 +1019,7 @@ struct FTPProfileAnalysis: View {
             return (
                 "Bon niveau",
                 "Bonne FTP. Vous avez une base solide pour la compétition amateur.",
-                "bicycle",
+                "figure.outdoor.cycle",
                 "Augmentez le volume au sweet spot (88-94% FTP) et intégrez des blocs VO2max."
             )
         } else if wkg >= 2.5 {
@@ -1085,7 +1085,7 @@ struct FTPUsageSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: ECSpacing.md) {
             HStack {
-                Image(systemName: "bicycle")
+                Image(systemName: "figure.outdoor.cycle")
                     .foregroundColor(themeManager.sportColor(for: .cyclisme))
                 Text("Comment utiliser ces données")
                     .font(.ecLabelBold)
@@ -1597,7 +1597,7 @@ struct FTPHybridProfileAnalysis: View {
             return (
                 "Bon niveau",
                 "Bonne FTP Hybrid. Vous avez une base solide pour progresser vers le haut niveau.",
-                "bicycle",
+                "figure.outdoor.cycle",
                 "Augmentez le volume au sweet spot et intégrez des blocs VO2max ciblés."
             )
         } else if wkg >= 2.5 {
@@ -1663,7 +1663,7 @@ struct FTPHybridUsageSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: ECSpacing.md) {
             HStack {
-                Image(systemName: "bicycle")
+                Image(systemName: "figure.outdoor.cycle")
                     .foregroundColor(themeManager.sportColor(for: .cyclisme))
                 Text("Comment utiliser ces données")
                     .font(.ecLabelBold)
@@ -3403,7 +3403,7 @@ struct CPWprimeUsageSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: ECSpacing.md) {
             HStack {
-                Image(systemName: "bicycle")
+                Image(systemName: "figure.outdoor.cycle")
                     .foregroundColor(themeManager.sportColor(for: .cyclisme))
                 Text("Comment utiliser ces données")
                     .font(.ecLabelBold)

@@ -71,9 +71,53 @@ class ActivitiesService {
         return activities
     }
 
-    // MARK: - Get Activities for Month
+    // MARK: - Get Activities for Month (Light)
 
-    /// Récupère les activités pour un mois donné
+    /// Récupère les activités légères pour un mois donné (calendrier)
+    /// Utilise le nouvel endpoint /activities/calendar
+    func getActivitiesForMonthLight(
+        userId: String,
+        year: Int,
+        month: Int
+    ) async throws -> [ActivityLight] {
+        let params: [String: String] = [
+            "user_id": userId,
+            "year": String(year),
+            "month": String(month)
+        ]
+
+        let activities: [ActivityLight] = try await api.get(
+            "/activities/calendar",
+            queryParams: params
+        )
+
+        return activities
+    }
+
+    // MARK: - Get Activity Detail
+
+    /// Récupère le détail complet d'une activité
+    /// Utilise le nouvel endpoint /activities/{id}
+    func getActivityDetail(
+        userId: String,
+        activityId: String
+    ) async throws -> Activity {
+        let params: [String: String] = [
+            "user_id": userId
+        ]
+
+        let activity: Activity = try await api.get(
+            "/activities/\(activityId)",
+            queryParams: params
+        )
+
+        return activity
+    }
+
+    // MARK: - Get Activities for Month (Legacy - Full)
+
+    /// Récupère les activités complètes pour un mois donné (ancienne méthode)
+    /// @deprecated Préférer getActivitiesForMonthLight pour le calendrier
     func getActivitiesForMonth(
         userId: String,
         year: Int,
@@ -199,7 +243,7 @@ class ActivitiesService {
         formatter.dateFormat = "yyyy-MM-dd"
         let dateStr = formatter.string(from: activityDate)
 
-        var params: [String: String] = [
+        let params: [String: String] = [
             "user_id": userId,
             "start_date": dateStr,
             "end_date": dateStr,

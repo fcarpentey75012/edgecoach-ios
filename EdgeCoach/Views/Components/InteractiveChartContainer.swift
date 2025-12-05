@@ -72,15 +72,8 @@ struct InteractiveChartContainer<Content: View>: View {
                         }
                     }
                 
-                // Règle verticale (Rule Mark)
-                if let time = selectedTime ?? localSelection,
-                   let start = dataPoints.first?.timestamp {
-                    // Note: Idéalement ceci est fait dans le Chart via RuleMark, 
-                    // mais ici on le simule par dessus si le content ne le gère pas.
-                    // Pour une meilleure intégration, le Content doit gérer le RuleMark.
-                    // Ici on ne fait rien de plus visuellement, on laisse le ChartContent gérer le RuleMark
-                    // grâce à selectedTime passé en paramètre du Content.
-                }
+                // Note: La règle verticale (RuleMark) est gérée directement dans le Chart content
+                // via selectedTime passé en paramètre.
             }
         }
         .themedCard()

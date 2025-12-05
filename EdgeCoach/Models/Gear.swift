@@ -15,7 +15,7 @@ enum GearType: String, Codable, CaseIterable, Identifiable {
     
     var icon: String {
         switch self {
-        case .bike: return "bicycle"
+        case .bike: return "figure.outdoor.cycle"
         case .shoes: return "shoeprint.fill"
         case .textile: return "tshirt.fill"
         case .wetsuit: return "figure.pool.swim"

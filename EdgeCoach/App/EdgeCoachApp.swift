@@ -9,10 +9,35 @@ import SwiftUI
 struct EdgeCoachApp: App {
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var appState = AppState()
-    
+
     // Utiliser ObservedObject pour les singletons déjà initialisés
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var layoutManager = LayoutManager.shared
+
+    init() {
+        // Warm-up: Pré-initialiser les services pour éviter le lag au premier tap
+        Task.detached(priority: .background) {
+            await Self.warmUpServices()
+        }
+    }
+
+    /// Pré-initialise les services coûteux en arrière-plan
+    @MainActor
+    private static func warmUpServices() {
+        // Forcer l'initialisation des singletons
+        _ = APIService.shared
+        _ = ActivitiesService.shared
+        _ = DashboardService.shared
+        _ = PlansService.shared
+        _ = CoachService.shared
+        _ = UserService.shared
+        _ = EquipmentService.shared
+        _ = ChartDataService.shared
+        _ = MacroPlanService.shared
+        #if DEBUG
+        print("✅ [App] Services warm-up completed")
+        #endif
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -47,7 +72,7 @@ struct ContentView: View {
 /// Vue de chargement initial
 struct SplashView: View {
     @EnvironmentObject var themeManager: ThemeManager
-    
+
     var body: some View {
         ZStack {
             themeManager.backgroundColor

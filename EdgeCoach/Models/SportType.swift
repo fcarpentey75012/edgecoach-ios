@@ -23,7 +23,7 @@ enum SportType: String, CaseIterable, Identifiable, Codable {
     var icon: String {
         switch self {
         case .running: return "figure.run"
-        case .cycling: return "bicycle"
+        case .cycling: return "figure.outdoor.cycle"
         case .swimming: return "figure.pool.swim"
         }
     }

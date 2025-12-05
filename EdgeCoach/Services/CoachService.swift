@@ -38,7 +38,7 @@ struct SelectedCoach: Codable, Identifiable, Equatable {
         case "course", "course à pied", "running":
             return "figure.run"
         case "cyclisme", "cycling":
-            return "bicycle"
+            return "figure.outdoor.cycle"
         default:
             return "figure.run"
         }

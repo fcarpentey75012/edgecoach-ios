@@ -48,9 +48,9 @@ class AuthViewModel: ObservableObject {
             self.isAuthenticated = true
 
             // Optionally refresh user data from server
-            Task {
+            /*Task {
                 await refreshUserProfile()
-            }
+            }*/
         }
 
         isLoading = false

@@ -338,7 +338,7 @@ struct PerformanceView: View {
                     // MARK: Cyclisme
                     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                     if viewModel.hasFTP || viewModel.hasFTPHybrid || viewModel.hasCPWprime {
-                        PerformanceSectionHeader(title: "Cyclisme", icon: "bicycle", sport: .cyclisme)
+                        PerformanceSectionHeader(title: "Cyclisme", icon: "figure.outdoor.cycle", sport: .cyclisme)
 
                         if viewModel.hasFTP {
                             FTPCard(viewModel: viewModel)
@@ -768,7 +768,7 @@ struct FTPCard: View {
                         Circle()
                             .fill(themeManager.sportColor(for: .cyclisme).opacity(0.15))
                             .frame(width: 40, height: 40)
-                        Image(systemName: "bicycle")
+                        Image(systemName: "figure.outdoor.cycle")
                             .font(.system(size: 18))
                             .foregroundColor(themeManager.sportColor(for: .cyclisme))
                     }
@@ -1537,7 +1537,7 @@ struct CyclingTechniqueCard: View {
                         Circle()
                             .fill(themeManager.sportColor(for: .cyclisme).opacity(0.15))
                             .frame(width: 40, height: 40)
-                        Image(systemName: "bicycle")
+                        Image(systemName: "figure.outdoor.cycle")
                             .font(.system(size: 18))
                             .foregroundColor(themeManager.sportColor(for: .cyclisme))
                     }

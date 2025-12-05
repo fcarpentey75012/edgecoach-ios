@@ -54,7 +54,7 @@ struct ProfileView: View {
 
                     SettingsSection(title: "Équipement") {
                         SettingsRow(
-                            icon: "bicycle.circle",
+                            icon: "figure.outdoor.cycle",
                             iconColor: themeManager.accentColor,
                             title: "Matériel",
                             subtitle: "Vélos, chaussures, accessoires"
@@ -175,9 +175,7 @@ struct ProfileView: View {
             .alert("Déconnexion", isPresented: $showingLogoutAlert) {
                 Button("Annuler", role: .cancel) {}
                 Button("Déconnexion", role: .destructive) {
-                    Task {
-                        await authViewModel.logout()
-                    }
+                    authViewModel.logout()
                 }
             } message: {
                 Text("Êtes-vous sûr de vouloir vous déconnecter ?")

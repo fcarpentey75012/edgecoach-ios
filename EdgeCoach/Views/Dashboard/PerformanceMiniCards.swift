@@ -222,7 +222,7 @@ struct CyclingPerformanceMiniCard: View {
             VStack(alignment: .leading, spacing: ECSpacing.sm) {
                 // Header
                 HStack {
-                    Image(systemName: "bicycle")
+                    Image(systemName: "figure.outdoor.cycle")
                         .font(.system(size: 14))
                         .foregroundColor(themeManager.sportColor(for: .cyclisme))
                     Text("Cyclisme")

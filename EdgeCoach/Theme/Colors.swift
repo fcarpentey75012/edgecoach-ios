@@ -62,9 +62,9 @@ extension Color {
     static let ecCard = Color.white
 
     // MARK: - Sports Colors
-    static let ecSwimming = Color(hex: "#06B6D4")        // Cyan 500
-    static let ecCycling = Color(hex: "#F59E0B")         // Amber 500
-    static let ecRunning = Color(hex: "#10B981")         // Emerald 500
+    static let ecSwimming = Color(hex: "#0891B2")        // Bleu ardoise (moins flashy)
+    static let ecCycling = Color(hex: "#D97706")         // Ambre doux (moins flashy)
+    static let ecRunning = Color(hex: "#059669")         // Vert sauge (moins flashy)
     static let ecTriathlon = Color(hex: "#8B5CF6")       // Violet 500
     static let ecOther = Color(hex: "#6B7280")           // Gray 500
 

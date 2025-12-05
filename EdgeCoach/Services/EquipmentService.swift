@@ -141,7 +141,7 @@ enum EquipmentCategory: String, CaseIterable, Identifiable {
     
     var icon: String {
         switch self {
-        case .bikes: return "bicycle"
+        case .bikes: return "figure.outdoor.cycle"
         case .shoes: return "shoeprint.fill"
         case .clothes: return "tshirt.fill"
         case .suits: return "figure.pool.swim"
@@ -296,7 +296,6 @@ class EquipmentService {
         case .cycling: sportEquipment = equipment.cycling
         case .running: sportEquipment = equipment.running
         case .swimming: sportEquipment = equipment.swimming
-        default: return []
         }
 
         switch category {

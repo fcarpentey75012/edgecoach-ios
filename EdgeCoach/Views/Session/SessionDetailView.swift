@@ -1967,7 +1967,7 @@ struct SessionLogbookContent: View {
                     HydrationEditorView(items: $hydrationItems)
                 }
                 if let userId = authViewModel.user?.id {
-                    collapsibleSection(id: "equipment", title: "Équipement", icon: "bicycle", iconColor: themeManager.accentColor) {
+                    collapsibleSection(id: "equipment", title: "Équipement", icon: "figure.outdoor.cycle", iconColor: themeManager.accentColor) {
                         EquipmentSelectorView(userId: userId, discipline: activity.discipline, selectedEquipment: $equipment)
                     }
                 }
@@ -2277,7 +2277,7 @@ private struct EquipmentSelectorView: View {
 
     private var categories: [EquipmentCategoryConfig] {
         switch discipline {
-        case .cyclisme: return [EquipmentCategoryConfig(key: .bikes, label: "Vélo", icon: "bicycle", sport: .cycling), EquipmentCategoryConfig(key: .shoes, label: "Chaussures", icon: "shoeprint.fill", sport: .cycling)]
+        case .cyclisme: return [EquipmentCategoryConfig(key: .bikes, label: "Vélo", icon: "figure.outdoor.cycle", sport: .cycling), EquipmentCategoryConfig(key: .shoes, label: "Chaussures", icon: "shoeprint.fill", sport: .cycling)]
         case .course: return [EquipmentCategoryConfig(key: .shoes, label: "Chaussures", icon: "shoeprint.fill", sport: .running)]
         case .natation: return [EquipmentCategoryConfig(key: .suits, label: "Combinaison", icon: "figure.pool.swim", sport: .swimming)]
         case .autre: return []

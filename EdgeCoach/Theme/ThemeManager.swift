@@ -313,7 +313,7 @@ class ThemeManager: ObservableObject {
 // MARK: - Environment Key
 
 private struct ThemeManagerKey: EnvironmentKey {
-    @MainActor static let defaultValue = ThemeManager.shared
+    nonisolated(unsafe) static let defaultValue = ThemeManager.shared
 }
 
 extension EnvironmentValues {

@@ -252,7 +252,7 @@ struct PreviewCard: View {
             
             // Sport cards simulées
             HStack(spacing: 8) {
-                PreviewSportBadge(icon: "bicycle", color: themeManager.sportColor(for: .cyclisme))
+                PreviewSportBadge(icon: "figure.outdoor.cycle", color: themeManager.sportColor(for: .cyclisme))
                 PreviewSportBadge(icon: "figure.run", color: themeManager.sportColor(for: .course))
                 PreviewSportBadge(icon: "figure.pool.swim", color: themeManager.sportColor(for: .natation))
             }

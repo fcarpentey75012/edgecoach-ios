@@ -44,7 +44,6 @@ enum APIError: Error, LocalizedError {
 
 // MARK: - API Service
 
-@MainActor
 class APIService {
     static let shared = APIService()
 
@@ -55,8 +54,8 @@ class APIService {
 
     private init() {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 60
+        config.timeoutIntervalForRequest = 120
+        config.timeoutIntervalForResource = 300
         session = URLSession(configuration: config)
 
         // Utiliser un décodeur JSON personnalisé qui gère mieux les nombres flottants
@@ -190,12 +189,18 @@ class APIService {
             } catch {
                 #if DEBUG
                 print("❌ Decoding error: \(error)")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("📄 Response causing error: \(jsonString)")
+                }
                 #endif
                 throw APIError.decodingError(error)
             }
         case 401:
             throw APIError.unauthorized
         case 404:
+            if let message = String(data: data, encoding: .utf8), !message.isEmpty {
+                throw APIError.httpError(404, message)
+            }
             throw APIError.notFound
         case 500...599:
             throw APIError.serverError
@@ -232,6 +237,54 @@ class APIService {
         _ endpoint: String
     ) async throws -> T {
         try await request(endpoint: endpoint, method: "DELETE")
+    }
+
+    /// POST avec un body [String: Any] brut (pour les cas où Codable ne suffit pas)
+    func postRaw<T: Decodable>(
+        _ endpoint: String,
+        body: [String: Any]
+    ) async throws -> T {
+        let bodyData = try JSONSerialization.data(withJSONObject: body, options: [])
+
+        let request = try buildRequest(
+            endpoint: endpoint,
+            method: "POST",
+            body: bodyData,
+            queryParams: nil
+        )
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        switch httpResponse.statusCode {
+        case 200...299:
+            do {
+                return try APIService.decodeJSON(T.self, from: data, decoder: decoder)
+            } catch {
+                #if DEBUG
+                print("❌ Decoding error: \(error)")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("📄 Response: \(jsonString.prefix(500))")
+                }
+                #endif
+                throw APIError.decodingError(error)
+            }
+        case 401:
+            throw APIError.unauthorized
+        case 404:
+            if let message = String(data: data, encoding: .utf8), !message.isEmpty {
+                throw APIError.httpError(404, message)
+            }
+            throw APIError.notFound
+        case 500...599:
+            throw APIError.serverError
+        default:
+            let message = String(data: data, encoding: .utf8)
+            throw APIError.httpError(httpResponse.statusCode, message)
+        }
     }
 
     // MARK: - Health Check

@@ -118,7 +118,7 @@ extension Coach {
             name: "Marc",
             sport: .cyclisme,
             specialty: "Cyclisme & Performance",
-            avatar: "bicycle",
+            avatar: "figure.outdoor.cycle",
             bio: "Expert en cyclisme avec 15 ans d'expérience dans l'entraînement de cyclistes amateurs et professionnels. Spécialisé dans l'optimisation de la puissance et l'analyse des données."
         ),
         Coach(

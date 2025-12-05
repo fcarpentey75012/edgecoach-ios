@@ -92,7 +92,6 @@ struct CoachChatContentView: View {
                 onSend: sendMessage,
                 selectedImages: $viewModel.selectedImages,
                 selectedFiles: $viewModel.selectedFiles,
-                audioRecorder: viewModel.audioRecorder,
                 onVoiceRecordingComplete: handleVoiceRecording
             )
         }
@@ -562,7 +561,7 @@ struct CoachSelectorSheet: View {
             case .triathlon: return "trophy"
             case .natation: return "figure.pool.swim"
             case .course: return "figure.run"
-            case .cyclisme: return "bicycle"
+            case .cyclisme: return "figure.outdoor.cycle"
             }
         }
 
@@ -1060,7 +1059,7 @@ struct ChatInputBar: View {
     // Support média
     @Binding var selectedImages: [UIImage]
     @Binding var selectedFiles: [URL]
-    @ObservedObject var audioRecorder: AudioRecorderService
+    @StateObject private var audioRecorder = AudioRecorderService.shared
     let onVoiceRecordingComplete: (URL) -> Void
 
     @State private var showingAttachmentPicker = false
@@ -1072,7 +1071,6 @@ struct ChatInputBar: View {
         onSend: @escaping () -> Void,
         selectedImages: Binding<[UIImage]> = .constant([]),
         selectedFiles: Binding<[URL]> = .constant([]),
-        audioRecorder: AudioRecorderService = AudioRecorderService.shared,
         onVoiceRecordingComplete: @escaping (URL) -> Void = { _ in }
     ) {
         self._text = text
@@ -1081,7 +1079,6 @@ struct ChatInputBar: View {
         self.onSend = onSend
         self._selectedImages = selectedImages
         self._selectedFiles = selectedFiles
-        self.audioRecorder = audioRecorder
         self.onVoiceRecordingComplete = onVoiceRecordingComplete
     }
 

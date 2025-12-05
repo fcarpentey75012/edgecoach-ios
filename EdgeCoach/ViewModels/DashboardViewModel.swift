@@ -13,6 +13,7 @@ class DashboardViewModel: ObservableObject {
     @Published var recentActivities: [Activity] = []
     @Published var plannedSessions: [PlannedSession] = []
     @Published var performanceReport: PerformanceReport?
+    @Published var macroPlan: MacroPlanData?
     // @Published var trainingLoad: TrainingLoad? // TODO: Implement TrainingLoad model
     @Published var isLoading: Bool = false
     @Published var isRefreshing: Bool = false
@@ -190,6 +191,11 @@ class DashboardViewModel: ObservableObject {
             // group.addTask {
             //     await self.loadTrainingLoad(userId: userId)
             // }
+
+            // Load macro plan
+            group.addTask {
+                await self.loadMacroPlan(userId: userId)
+            }
         }
 
         // Mettre à jour les valeurs cachées après le chargement
@@ -229,8 +235,8 @@ class DashboardViewModel: ObservableObject {
             #if DEBUG
             print("Failed to load weekly summary: \(error)")
             #endif
-            // Use empty data on error
-            weeklySummaryData = WeeklySummaryData.empty()
+            self.error = "Erreur chargement: \(error.localizedDescription)"
+            weeklySummaryData = nil
         }
     }
 
@@ -298,6 +304,22 @@ class DashboardViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Load Macro Plan
+
+    private func loadMacroPlan(userId: String) async {
+        do {
+            macroPlan = try await MacroPlanService.shared.getLastMacroPlan(userId: userId)
+            #if DEBUG
+            print("✅ [Dashboard] Loaded macro plan (has visual bars: \(macroPlan?.visualBars != nil))")
+            #endif
+        } catch {
+            #if DEBUG
+            print("Failed to load macro plan: \(error)")
+            #endif
+            // Erreur silencieuse
+        }
+    }
+
     // MARK: - Load Training Load
 
     // TODO: Implement when UserMetricsService and TrainingLoad are available
@@ -343,7 +365,8 @@ class DashboardViewModel: ObservableObject {
 
     /// Indique si l'utilisateur a un plan d'entraînement
     var hasPlan: Bool {
-        !plannedSessions.isEmpty
+        // Le plan existe si un MacroPlan est chargé OU si on a des sessions planifiées
+        macroPlan != nil || !plannedSessions.isEmpty
     }
 
     // MARK: - Performance Computed Properties

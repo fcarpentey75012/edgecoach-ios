@@ -340,7 +340,7 @@ enum DashboardMetric: String, CaseIterable, Codable, Identifiable {
         case .elevation: return "mountain.2"
         case .calories: return "flame"
         case .performanceRunning: return "figure.run"
-        case .performanceCycling: return "bicycle"
+        case .performanceCycling: return "figure.outdoor.cycle"
         case .performanceSwimming: return "figure.pool.swim"
         }
     }
@@ -393,6 +393,40 @@ struct PerformanceWidgetConfig: Codable {
     var showSwimming: Bool = true
 }
 
+/// Configuration pour le widget Week Progress
+struct WeekProgressConfig: Codable {
+    var isVisible: Bool = true
+}
+
+/// Configuration pour le widget Sports Breakdown
+struct SportsBreakdownConfig: Codable {
+    var showCyclisme: Bool = true
+    var showCourse: Bool = true
+    var showNatation: Bool = true
+    var showAutre: Bool = true
+}
+
+/// Configuration pour le widget Planned Sessions
+struct PlannedSessionsConfig: Codable {
+    var maxItems: Int = 5
+
+    static let itemOptions = [3, 5, 10]
+}
+
+/// Configuration pour le widget Upcoming Sessions
+struct UpcomingSessionsConfig: Codable {
+    var maxItems: Int = 5
+
+    static let itemOptions = [3, 5, 10]
+}
+
+/// Configuration pour le widget Recent Activities
+struct RecentActivitiesConfig: Codable {
+    var maxItems: Int = 5
+
+    static let itemOptions = [3, 5, 10]
+}
+
 /// Configuration d'un widget individuel
 struct DashboardWidgetConfig: Codable, Identifiable, Equatable {
     let type: DashboardWidgetType
@@ -413,6 +447,11 @@ struct DashboardWidgetsPreferences: Codable {
     var widgets: [DashboardWidgetConfig]
     var kpiConfig: KPISummaryConfig
     var performanceConfig: PerformanceWidgetConfig
+    var weekProgressConfig: WeekProgressConfig
+    var sportsBreakdownConfig: SportsBreakdownConfig
+    var plannedSessionsConfig: PlannedSessionsConfig
+    var upcomingSessionsConfig: UpcomingSessionsConfig
+    var recentActivitiesConfig: RecentActivitiesConfig
 
     /// Widgets actifs triés par ordre
     var enabledWidgets: [DashboardWidgetConfig] {
@@ -432,7 +471,12 @@ struct DashboardWidgetsPreferences: Codable {
                 )
             },
             kpiConfig: KPISummaryConfig(),
-            performanceConfig: PerformanceWidgetConfig()
+            performanceConfig: PerformanceWidgetConfig(),
+            weekProgressConfig: WeekProgressConfig(),
+            sportsBreakdownConfig: SportsBreakdownConfig(),
+            plannedSessionsConfig: PlannedSessionsConfig(),
+            upcomingSessionsConfig: UpcomingSessionsConfig(),
+            recentActivitiesConfig: RecentActivitiesConfig()
         )
     }
 }

@@ -173,6 +173,9 @@ class LogbookService {
             if case .notFound = error {
                 return nil
             }
+            if case .httpError(let code, _) = error, code == 404 {
+                return nil
+            }
             throw error
         }
     }
@@ -192,6 +195,9 @@ class LogbookService {
             if case .notFound = error {
                 return nil
             }
+            if case .httpError(let code, _) = error, code == 404 {
+                return nil
+            }
             throw error
         }
     }
@@ -204,6 +210,9 @@ class LogbookService {
             return response.data
         } catch let error as APIError {
             if case .notFound = error {
+                return []
+            }
+            if case .httpError(let code, _) = error, code == 404 {
                 return []
             }
             throw error

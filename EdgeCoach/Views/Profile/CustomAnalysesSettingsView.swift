@@ -243,7 +243,7 @@ struct AnalysisEditorSheet: View {
     // Liste d'icônes suggérées
     private let suggestedIcons = [
         "chart.line.uptrend.xyaxis", "heart.fill", "bolt.fill", "lightbulb.fill",
-        "speedometer", "figure.run", "bicycle", "figure.pool.swim",
+        "speedometer", "figure.run", "figure.outdoor.cycle", "figure.pool.swim",
         "flame.fill", "timer", "waveform.path.ecg", "arrow.up.right",
         "chart.bar.fill", "gauge.high", "mountain.2.fill", "arrow.triangle.2.circlepath",
         "star.fill", "target", "trophy.fill", "medal.fill"
