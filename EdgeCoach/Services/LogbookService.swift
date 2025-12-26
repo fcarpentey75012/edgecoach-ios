@@ -87,6 +87,18 @@ struct LogbookData: Codable {
     var equipment: SessionEquipmentData?
     var effortRating: Int?
     var perceivedEffort: String?
+    var intervalAnnotations: [IntervalAnnotation]?
+
+    enum CodingKeys: String, CodingKey {
+        case nutrition
+        case hydration
+        case notes
+        case weather
+        case equipment
+        case effortRating = "effort_rating"
+        case perceivedEffort = "perceived_effort"
+        case intervalAnnotations = "interval_annotations"
+    }
 
     static var empty: LogbookData {
         LogbookData(
@@ -96,7 +108,8 @@ struct LogbookData: Codable {
             weather: .empty,
             equipment: nil,
             effortRating: nil,
-            perceivedEffort: nil
+            perceivedEffort: nil,
+            intervalAnnotations: nil
         )
     }
 }
