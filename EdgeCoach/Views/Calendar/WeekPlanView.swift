@@ -14,11 +14,29 @@ struct WeekPlanView: View {
     @ObservedObject var viewModel: CalendarViewModel
     let onSessionTap: (CycleSession) -> Void
 
+    @State private var showMonthPicker = false
+
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                // Barre d'info du cycle (phase, semaine x/y, durée)
-                WeekPlanInfoBar(viewModel: viewModel)
+                // Barre d'info du cycle (phase, semaine x/y, durée) - cliquable pour afficher le mois
+                WeekPlanInfoBar(
+                    viewModel: viewModel,
+                    onTapDateRange: { showMonthPicker.toggle() }
+                )
+
+                // Calendrier mensuel (affiché si showMonthPicker)
+                if showMonthPicker {
+                    MonthPickerView(
+                        viewModel: viewModel,
+                        showActivities: false,
+                        onDateSelected: { date in
+                            viewModel.selectDate(date)
+                            showMonthPicker = false
+                        }
+                    )
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
 
                 // Grille des jours de la semaine
                 WeekDaysGrid(viewModel: viewModel, onDateSelected: { date in
@@ -35,6 +53,7 @@ struct WeekPlanView: View {
                     onSessionTap: onSessionTap
                 )
             }
+            .animation(.easeInOut(duration: 0.25), value: showMonthPicker)
 
             // Toast de résultat de déplacement
             if viewModel.showMoveResult {
@@ -74,37 +93,116 @@ struct WeekPlanView: View {
 struct WeekPlanInfoBar: View {
     @EnvironmentObject var themeManager: ThemeManager
     @ObservedObject var viewModel: CalendarViewModel
+    var onTapDateRange: (() -> Void)? = nil
+
+    private var weekRangeString: String {
+        let calendar = Calendar.current
+        let days = viewModel.daysInCurrentWeek
+        guard let firstDay = days.first, let lastDay = days.last else { return "" }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "fr_FR")
+
+        if calendar.component(.month, from: firstDay) == calendar.component(.month, from: lastDay) {
+            formatter.dateFormat = "d"
+            let start = formatter.string(from: firstDay)
+            formatter.dateFormat = "d MMMM yyyy"
+            let end = formatter.string(from: lastDay)
+            return "\(start) - \(end)"
+        } else {
+            formatter.dateFormat = "d MMM"
+            let start = formatter.string(from: firstDay)
+            formatter.dateFormat = "d MMM yyyy"
+            let end = formatter.string(from: lastDay)
+            return "\(start) - \(end)"
+        }
+    }
+
+    private var totalSessionsThisWeek: Int {
+        viewModel.daysInCurrentWeek.reduce(0) { count, date in
+            count + viewModel.cycleSessionsForDate(date).count
+        }
+    }
 
     var body: some View {
-        if let plan = viewModel.cyclePlan {
+        VStack(spacing: ECSpacing.xs) {
+            // Ligne 1: Plage de dates cliquable
             HStack {
-                // Badge phase
-                Text(plan.phaseDisplayName.uppercased())
-                    .font(.ecSmall)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, ECSpacing.sm)
-                    .padding(.vertical, 4)
-                    .background(phaseColor(for: plan.phase))
-                    .cornerRadius(ECRadius.sm)
-
-                // Semaine x/y
-                Text("Semaine \(viewModel.selectedWeekIndex + 1)/\(plan.weeks.count)")
-                    .font(.ecSmall)
-                    .foregroundColor(themeManager.textSecondary)
+                // Navigation semaine précédente
+                Button {
+                    viewModel.previousWeek()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.ecBody)
+                        .foregroundColor(themeManager.accentColor)
+                }
 
                 Spacer()
 
-                // Durée totale de la semaine
-                if let week = viewModel.currentWeek {
-                    Label(week.formattedTotalDuration, systemImage: "clock")
-                        .font(.ecCaption)
-                        .foregroundColor(themeManager.textSecondary)
+                // Plage de dates (cliquable pour afficher le mois)
+                Button {
+                    onTapDateRange?()
+                } label: {
+                    VStack(spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text(weekRangeString)
+                                .font(.ecLabelBold)
+                                .foregroundColor(themeManager.textPrimary)
+
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(themeManager.textSecondary)
+                        }
+
+                        Text("\(totalSessionsThisWeek) séance\(totalSessionsThisWeek > 1 ? "s" : "") planifiée\(totalSessionsThisWeek > 1 ? "s" : "")")
+                            .font(.ecSmall)
+                            .foregroundColor(themeManager.textSecondary)
+                    }
+                }
+
+                Spacer()
+
+                // Navigation semaine suivante
+                Button {
+                    viewModel.nextWeek()
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.ecBody)
+                        .foregroundColor(themeManager.accentColor)
                 }
             }
-            .padding(.horizontal, ECSpacing.lg)
-            .padding(.vertical, ECSpacing.sm)
+
+            // Ligne 2: Infos du cycle (si disponible)
+            if let plan = viewModel.cyclePlan {
+                HStack {
+                    // Badge phase
+                    Text(plan.phaseDisplayName.uppercased())
+                        .font(.ecSmall)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, ECSpacing.sm)
+                        .padding(.vertical, 4)
+                        .background(phaseColor(for: plan.phase))
+                        .cornerRadius(ECRadius.sm)
+
+                    // Semaine x/y
+                    Text("Semaine \(viewModel.selectedWeekIndex + 1)/\(plan.weeks.count)")
+                        .font(.ecSmall)
+                        .foregroundColor(themeManager.textSecondary)
+
+                    Spacer()
+
+                    // Durée totale de la semaine
+                    if let week = viewModel.currentWeek {
+                        Label(week.formattedTotalDuration, systemImage: "clock")
+                            .font(.ecCaption)
+                            .foregroundColor(themeManager.textSecondary)
+                    }
+                }
+            }
         }
+        .padding(.horizontal, ECSpacing.lg)
+        .padding(.vertical, ECSpacing.sm)
     }
 
     private func phaseColor(for phase: String) -> Color {
@@ -221,7 +319,7 @@ struct WeekDayCell: View {
                 if !sessions.isEmpty {
                     HStack(spacing: 2) {
                         ForEach(sessions.prefix(3)) { session in
-                            DisciplineIconView(discipline: session.discipline, size: 10, useCustomImage: true)
+                            DisciplineIconView(discipline: session.discipline, size: 10)
                         }
                         if sessions.count > 3 {
                             Text("+\(sessions.count - 3)")
@@ -421,7 +519,7 @@ struct CycleSessionCard: View {
                     .fill(themeManager.sportColor(for: session.discipline).opacity(0.15))
                     .frame(width: 40, height: 40)
 
-                DisciplineIconView(discipline: session.discipline, size: 16, useCustomImage: true)
+                DisciplineIconView(discipline: session.discipline, size: 16)
             }
 
             // Infos session
@@ -651,7 +749,7 @@ struct CycleSessionDetailView: View {
                     .fill(themeManager.sportColor(for: session.discipline).opacity(0.15))
                     .frame(width: 80, height: 80)
 
-                DisciplineIconView(discipline: session.discipline, size: 36, useCustomImage: true)
+                DisciplineIconView(discipline: session.discipline, size: 36)
             }
 
             Text(session.displayTitle)
@@ -1899,7 +1997,7 @@ struct PlannedSessionAnalysisSheet: View {
                     .fill(themeManager.sportColor(for: session.discipline).opacity(0.15))
                     .frame(width: 56, height: 56)
 
-                DisciplineIconView(discipline: session.discipline, size: 24, useCustomImage: true)
+                DisciplineIconView(discipline: session.discipline, size: 24)
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -2493,7 +2591,7 @@ struct WeekHistoryDayCell: View {
                         // Icônes des activités réalisées
                         if !activities.isEmpty {
                             ForEach(activities.prefix(3)) { activity in
-                                DisciplineIconView(discipline: activity.discipline, size: 10, useCustomImage: true)
+                                DisciplineIconView(discipline: activity.discipline, size: 10)
                             }
                             if activities.count > 3 {
                                 Text("+\(activities.count - 3)")
@@ -2505,7 +2603,7 @@ struct WeekHistoryDayCell: View {
                         // Icônes des séances planifiées (si pas d'activités)
                         if !plannedSessions.isEmpty && activities.isEmpty {
                             ForEach(plannedSessions.prefix(3)) { session in
-                                DisciplineIconView(discipline: session.discipline, size: 10, useCustomImage: true)
+                                DisciplineIconView(discipline: session.discipline, size: 10)
                                     .opacity(0.5)
                             }
                             if plannedSessions.count > 3 {
@@ -2655,7 +2753,7 @@ struct HistoryActivityCard: View {
                     .fill(themeManager.sportColor(for: activity.discipline).opacity(0.15))
                     .frame(width: 40, height: 40)
 
-                DisciplineIconView(discipline: activity.discipline, size: 16, useCustomImage: true)
+                DisciplineIconView(discipline: activity.discipline, size: 16)
             }
 
             // Infos
@@ -2730,7 +2828,7 @@ struct HistoryPlannedSessionCard: View {
                     .fill(themeManager.sportColor(for: session.discipline).opacity(0.15))
                     .frame(width: 40, height: 40)
 
-                DisciplineIconView(discipline: session.discipline, size: 16, useCustomImage: true)
+                DisciplineIconView(discipline: session.discipline, size: 16)
             }
 
             // Infos
@@ -2770,6 +2868,600 @@ struct HistoryPlannedSessionCard: View {
         )
         .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
         .padding(.horizontal, ECSpacing.md)
+    }
+}
+
+// MARK: - Week Activities View (pour onglet "Réalisé")
+
+struct WeekActivitiesView: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    @ObservedObject var viewModel: CalendarViewModel
+    let onActivityTap: (Activity) -> Void
+
+    @State private var showMonthPicker = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Barre d'info (semaine courante) - cliquable pour afficher le mois
+            WeekActivitiesInfoBar(
+                viewModel: viewModel,
+                onTapDateRange: { showMonthPicker = true }
+            )
+
+            // Calendrier mensuel (affiché si showMonthPicker)
+            if showMonthPicker {
+                MonthPickerView(
+                    viewModel: viewModel,
+                    showActivities: true,
+                    onDateSelected: { date in
+                        viewModel.selectDate(date)
+                        showMonthPicker = false
+                    }
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            // Grille des jours de la semaine
+            WeekActivitiesDaysGrid(viewModel: viewModel, onDateSelected: { date in
+                viewModel.selectDate(date)
+            })
+
+            Divider()
+                .background(themeManager.borderColor)
+                .padding(.vertical, ECSpacing.sm)
+
+            // Liste des activités du jour sélectionné
+            WeekActivitiesList(
+                viewModel: viewModel,
+                onActivityTap: onActivityTap
+            )
+        }
+        .animation(.easeInOut(duration: 0.25), value: showMonthPicker)
+        .onAppear {
+            viewModel.selectCurrentWeek()
+        }
+    }
+}
+
+// MARK: - Week Activities Info Bar
+
+struct WeekActivitiesInfoBar: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    @ObservedObject var viewModel: CalendarViewModel
+    var onTapDateRange: (() -> Void)? = nil
+
+    private var weekRangeString: String {
+        let calendar = Calendar.current
+        let days = viewModel.daysInCurrentWeek
+        guard let firstDay = days.first, let lastDay = days.last else { return "" }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "fr_FR")
+
+        if calendar.component(.month, from: firstDay) == calendar.component(.month, from: lastDay) {
+            formatter.dateFormat = "d"
+            let start = formatter.string(from: firstDay)
+            formatter.dateFormat = "d MMMM yyyy"
+            let end = formatter.string(from: lastDay)
+            return "\(start) - \(end)"
+        } else {
+            formatter.dateFormat = "d MMM"
+            let start = formatter.string(from: firstDay)
+            formatter.dateFormat = "d MMM yyyy"
+            let end = formatter.string(from: lastDay)
+            return "\(start) - \(end)"
+        }
+    }
+
+    private var totalActivitiesThisWeek: Int {
+        viewModel.daysInCurrentWeek.reduce(0) { count, date in
+            count + viewModel.activitiesForDate(date).count
+        }
+    }
+
+    var body: some View {
+        HStack {
+            // Navigation semaine précédente
+            Button {
+                viewModel.previousWeek()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.ecBody)
+                    .foregroundColor(themeManager.accentColor)
+            }
+
+            Spacer()
+
+            // Infos semaine (cliquable pour afficher le mois)
+            Button {
+                onTapDateRange?()
+            } label: {
+                VStack(spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text(weekRangeString)
+                            .font(.ecLabelBold)
+                            .foregroundColor(themeManager.textPrimary)
+
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(themeManager.textSecondary)
+                    }
+
+                    Text("\(totalActivitiesThisWeek) activité\(totalActivitiesThisWeek > 1 ? "s" : "") réalisée\(totalActivitiesThisWeek > 1 ? "s" : "")")
+                        .font(.ecSmall)
+                        .foregroundColor(themeManager.textSecondary)
+                }
+            }
+
+            Spacer()
+
+            // Navigation semaine suivante
+            Button {
+                viewModel.nextWeek()
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.ecBody)
+                    .foregroundColor(themeManager.accentColor)
+            }
+        }
+        .padding(.horizontal, ECSpacing.lg)
+        .padding(.vertical, ECSpacing.md)
+    }
+}
+
+// MARK: - Week Activities Days Grid
+
+struct WeekActivitiesDaysGrid: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    @ObservedObject var viewModel: CalendarViewModel
+    let onDateSelected: (Date) -> Void
+
+    private let weekDays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+
+    var body: some View {
+        VStack(spacing: ECSpacing.xs) {
+            // Noms des jours
+            HStack(spacing: 0) {
+                ForEach(weekDays, id: \.self) { day in
+                    Text(day)
+                        .font(.ecCaption)
+                        .foregroundColor(themeManager.textSecondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.horizontal, ECSpacing.sm)
+
+            // Cellules des jours
+            HStack(spacing: ECSpacing.xs) {
+                ForEach(viewModel.daysInCurrentWeek, id: \.self) { date in
+                    WeekActivityDayCell(
+                        date: date,
+                        isSelected: viewModel.isSelected(date),
+                        isToday: viewModel.isToday(date),
+                        activities: viewModel.activitiesForDate(date),
+                        onTap: { onDateSelected(date) }
+                    )
+                }
+            }
+            .padding(.horizontal, ECSpacing.sm)
+        }
+    }
+}
+
+// MARK: - Week Activity Day Cell
+
+struct WeekActivityDayCell: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    let date: Date
+    let isSelected: Bool
+    let isToday: Bool
+    let activities: [Activity]
+    let onTap: () -> Void
+
+    private var dayNumber: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        return formatter.string(from: date)
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 4) {
+                // Numéro du jour
+                ZStack {
+                    if isSelected {
+                        Circle()
+                            .fill(themeManager.accentColor)
+                            .frame(width: 32, height: 32)
+                    } else if isToday {
+                        Circle()
+                            .stroke(themeManager.accentColor, lineWidth: 2)
+                            .frame(width: 32, height: 32)
+                    }
+
+                    Text(dayNumber)
+                        .font(.ecBodyMedium)
+                        .foregroundColor(
+                            isSelected ? .white :
+                             (isToday ? themeManager.accentColor : themeManager.textPrimary)
+                        )
+                }
+
+                // Indicateurs d'activités (icônes sport)
+                if !activities.isEmpty {
+                    HStack(spacing: 2) {
+                        ForEach(activities.prefix(3)) { activity in
+                            DisciplineIconView(discipline: activity.discipline, size: 10)
+                        }
+                        if activities.count > 3 {
+                            Text("+\(activities.count - 3)")
+                                .font(.system(size: 8))
+                                .foregroundColor(themeManager.textTertiary)
+                        }
+                    }
+                    .frame(height: 14)
+                } else {
+                    Spacer()
+                        .frame(height: 14)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 60)
+            .background(
+                RoundedRectangle(cornerRadius: ECRadius.sm)
+                    .fill(!activities.isEmpty ? themeManager.successColor.opacity(0.1) : Color.clear)
+            )
+        }
+        .buttonStyle(.premium)
+    }
+}
+
+// MARK: - Week Activities List
+
+struct WeekActivitiesList: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    @ObservedObject var viewModel: CalendarViewModel
+    let onActivityTap: (Activity) -> Void
+
+    private var dateString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE d MMMM"
+        formatter.locale = Locale(identifier: "fr_FR")
+        return formatter.string(from: viewModel.selectedDate).capitalized
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: ECSpacing.md) {
+                Text(dateString)
+                    .font(.ecLabelBold)
+                    .foregroundColor(themeManager.textPrimary)
+                    .padding(.horizontal, ECSpacing.md)
+
+                let activities = viewModel.activitiesForSelectedDate
+
+                if activities.isEmpty {
+                    EmptyActivitiesDayView()
+                } else {
+                    ForEach(Array(activities.enumerated()), id: \.element.id) { index, activity in
+                        Button {
+                            onActivityTap(activity)
+                        } label: {
+                            WeekActivityCard(activity: activity)
+                        }
+                        .buttonStyle(.premium)
+                        .staggeredAnimation(index: index, totalCount: activities.count)
+                    }
+                }
+            }
+            .padding(.vertical, ECSpacing.sm)
+        }
+    }
+}
+
+// MARK: - Empty Activities Day View
+
+struct EmptyActivitiesDayView: View {
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        VStack(spacing: ECSpacing.sm) {
+            Image(systemName: "figure.run.circle")
+                .font(.system(size: 40))
+                .foregroundColor(themeManager.textTertiary)
+
+            Text("Aucune activité ce jour")
+                .font(.ecBody)
+                .foregroundColor(themeManager.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, ECSpacing.xl)
+    }
+}
+
+// MARK: - Week Activity Card (style aligné sur CycleSessionCard)
+
+struct WeekActivityCard: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    let activity: Activity
+
+    var body: some View {
+        HStack(spacing: ECSpacing.md) {
+            // Barre colorée sport
+            Rectangle()
+                .fill(themeManager.sportColor(for: activity.discipline))
+                .frame(width: 4)
+                .cornerRadius(2)
+
+            // Icône sport
+            ZStack {
+                Circle()
+                    .fill(themeManager.sportColor(for: activity.discipline).opacity(0.15))
+                    .frame(width: 40, height: 40)
+
+                DisciplineIconView(discipline: activity.discipline, size: 16)
+            }
+
+            // Infos activité
+            VStack(alignment: .leading, spacing: 4) {
+                Text(activity.displayTitle)
+                    .font(.ecLabelBold)
+                    .foregroundColor(themeManager.textPrimary)
+                    .lineLimit(1)
+
+                HStack(spacing: ECSpacing.sm) {
+                    // Durée
+                    if let duration = activity.formattedDuration {
+                        Label(duration, systemImage: "clock")
+                            .font(.ecCaption)
+                            .foregroundColor(themeManager.textSecondary)
+                    }
+
+                    // Distance
+                    if let distance = activity.formattedDistance {
+                        Label(distance, systemImage: "arrow.left.and.right")
+                            .font(.ecCaption)
+                            .foregroundColor(themeManager.textSecondary)
+                    }
+
+                    // TSS comme badge
+                    if let tss = activity.tss {
+                        Text("\(tss) TSS")
+                            .font(.ecSmall)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(tssColor(tss))
+                            .cornerRadius(4)
+                    }
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.ecCaption)
+                .foregroundColor(themeManager.textTertiary)
+        }
+        .padding(ECSpacing.md)
+        .background(themeManager.cardColor)
+        .cornerRadius(ECRadius.md)
+        .overlay(
+            RoundedRectangle(cornerRadius: ECRadius.md)
+                .stroke(themeManager.borderColor, lineWidth: 1)
+        )
+        .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
+        .padding(.horizontal, ECSpacing.md)
+    }
+
+    private func tssColor(_ tss: Int) -> Color {
+        switch tss {
+        case 0..<50: return .blue.opacity(0.7)
+        case 50..<100: return .green
+        case 100..<150: return .yellow.opacity(0.8)
+        case 150..<200: return .orange
+        default: return .red
+        }
+    }
+}
+
+// MARK: - Month Picker View (Calendrier mensuel)
+
+struct MonthPickerView: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    @ObservedObject var viewModel: CalendarViewModel
+    var showActivities: Bool = true  // true = activités réalisées, false = séances planifiées
+    let onDateSelected: (Date) -> Void
+
+    @State private var displayedMonth: Date = Date()
+
+    private let weekDays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+
+    private var monthYearString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        formatter.locale = Locale(identifier: "fr_FR")
+        return formatter.string(from: displayedMonth).capitalized
+    }
+
+    private var daysInMonth: [Date] {
+        let calendar = Calendar.current
+
+        // Premier jour du mois
+        let components = calendar.dateComponents([.year, .month], from: displayedMonth)
+        guard let firstOfMonth = calendar.date(from: components) else { return [] }
+
+        // Jour de la semaine du premier jour (1 = dimanche, 2 = lundi, ...)
+        let firstWeekday = calendar.component(.weekday, from: firstOfMonth)
+        // Convertir pour que lundi = 0
+        let offsetFromMonday = (firstWeekday + 5) % 7
+
+        // Date de début de la grille (lundi de la première semaine)
+        guard let gridStart = calendar.date(byAdding: .day, value: -offsetFromMonday, to: firstOfMonth) else { return [] }
+
+        // Générer 42 jours (6 semaines)
+        return (0..<42).compactMap { offset in
+            calendar.date(byAdding: .day, value: offset, to: gridStart)
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: ECSpacing.sm) {
+            // Header du mois avec navigation
+            HStack {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        previousMonth()
+                    }
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.ecBody)
+                        .foregroundColor(themeManager.accentColor)
+                }
+
+                Spacer()
+
+                Text(monthYearString)
+                    .font(.ecLabelBold)
+                    .foregroundColor(themeManager.textPrimary)
+
+                Spacer()
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        nextMonth()
+                    }
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.ecBody)
+                        .foregroundColor(themeManager.accentColor)
+                }
+            }
+            .padding(.horizontal, ECSpacing.md)
+
+            // Jours de la semaine
+            HStack(spacing: 0) {
+                ForEach(weekDays, id: \.self) { day in
+                    Text(day)
+                        .font(.ecCaption)
+                        .foregroundColor(themeManager.textSecondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.horizontal, ECSpacing.sm)
+
+            // Grille des jours
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+            LazyVGrid(columns: columns, spacing: ECSpacing.xs) {
+                ForEach(daysInMonth, id: \.self) { date in
+                    MonthPickerDayCell(
+                        date: date,
+                        isCurrentMonth: isCurrentMonth(date),
+                        isSelected: viewModel.isSelected(date),
+                        isToday: viewModel.isToday(date),
+                        hasData: showActivities ? hasActivity(on: date) : hasPlannedSession(on: date),
+                        onTap: { onDateSelected(date) }
+                    )
+                }
+            }
+            .padding(.horizontal, ECSpacing.sm)
+        }
+        .padding(.vertical, ECSpacing.md)
+        .background(themeManager.cardColor.opacity(0.5))
+        .cornerRadius(ECRadius.md)
+        .padding(.horizontal, ECSpacing.md)
+        .onAppear {
+            displayedMonth = viewModel.selectedDate
+        }
+    }
+
+    private func previousMonth() {
+        let calendar = Calendar.current
+        if let newDate = calendar.date(byAdding: .month, value: -1, to: displayedMonth) {
+            displayedMonth = newDate
+        }
+    }
+
+    private func nextMonth() {
+        let calendar = Calendar.current
+        if let newDate = calendar.date(byAdding: .month, value: 1, to: displayedMonth) {
+            displayedMonth = newDate
+        }
+    }
+
+    private func isCurrentMonth(_ date: Date) -> Bool {
+        let calendar = Calendar.current
+        return calendar.component(.month, from: date) == calendar.component(.month, from: displayedMonth) &&
+               calendar.component(.year, from: date) == calendar.component(.year, from: displayedMonth)
+    }
+
+    private func hasActivity(on date: Date) -> Bool {
+        !viewModel.activitiesForDate(date).isEmpty
+    }
+
+    private func hasPlannedSession(on date: Date) -> Bool {
+        !viewModel.cycleSessionsForDate(date).isEmpty
+    }
+}
+
+// MARK: - Month Picker Day Cell
+
+struct MonthPickerDayCell: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    let date: Date
+    let isCurrentMonth: Bool
+    let isSelected: Bool
+    let isToday: Bool
+    let hasData: Bool
+    let onTap: () -> Void
+
+    private var dayNumber: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        return formatter.string(from: date)
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            ZStack {
+                // Fond si données
+                if hasData && isCurrentMonth {
+                    Circle()
+                        .fill(themeManager.successColor.opacity(0.2))
+                        .frame(width: 32, height: 32)
+                }
+
+                // Cercle de sélection ou aujourd'hui
+                if isSelected {
+                    Circle()
+                        .fill(themeManager.accentColor)
+                        .frame(width: 32, height: 32)
+                } else if isToday {
+                    Circle()
+                        .stroke(themeManager.accentColor, lineWidth: 2)
+                        .frame(width: 32, height: 32)
+                }
+
+                Text(dayNumber)
+                    .font(.ecBody)
+                    .foregroundColor(textColor)
+            }
+        }
+        .frame(height: 40)
+        .opacity(isCurrentMonth ? 1 : 0.3)
+    }
+
+    private var textColor: Color {
+        if isSelected {
+            return .white
+        } else if isToday {
+            return themeManager.accentColor
+        } else if !isCurrentMonth {
+            return themeManager.textTertiary
+        } else {
+            return themeManager.textPrimary
+        }
     }
 }
 

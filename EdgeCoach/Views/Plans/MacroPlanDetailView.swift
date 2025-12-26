@@ -216,7 +216,7 @@ private struct TimelineItemRow: View {
                 }
                 .padding(.bottom, 24)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.premium)
         }
     }
     

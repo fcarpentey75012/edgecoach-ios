@@ -52,8 +52,8 @@ class CalendarViewModel: ObservableObject {
     // MARK: - Calendar View Mode
 
     enum CalendarViewMode: String, CaseIterable {
-        case week = "Semaine"
-        case month = "Mois"
+        case week = "Planifié"
+        case month = "Réalisé"
     }
 
     // MARK: - Load Data
@@ -363,6 +363,22 @@ class CalendarViewModel: ObservableObject {
     /// Sélectionner la semaine courante (aujourd'hui)
     func selectCurrentWeek() {
         selectedDate = Date()
+    }
+
+    /// Aller à la semaine précédente
+    func previousWeek() {
+        let calendar = Calendar.current
+        if let newDate = calendar.date(byAdding: .weekOfYear, value: -1, to: selectedDate) {
+            selectedDate = newDate
+        }
+    }
+
+    /// Aller à la semaine suivante
+    func nextWeek() {
+        let calendar = Calendar.current
+        if let newDate = calendar.date(byAdding: .weekOfYear, value: 1, to: selectedDate) {
+            selectedDate = newDate
+        }
     }
 
     /// Sessions du cycle pour une date donnée

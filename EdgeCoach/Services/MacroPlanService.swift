@@ -30,17 +30,18 @@ class MacroPlanService {
 
     // MARK: - Create MacroPlan
 
-    /// Crée un nouveau MacroPlan
+    /// Crée un nouveau MacroPlan via l'API backend
     func createMacroPlan(request: MacroPlanRequest) async throws -> MacroPlanResponse {
-        // MOCK: Return simulated success immediately
-        try? await Task.sleep(nanoseconds: 1 * 1_000_000_000) // 1s delay
+        // Appel au vrai endpoint backend
+        let apiResponse: MacroPlanAPIResponse = try await api.post("/plans/macro", body: request)
+
+        // Convertir en MacroPlanResponse iOS
         return MacroPlanResponse(
-            status: "success",
-            message: "Plan généré (MOCK)",
-            planId: "mock-id",
-            plan: MacroPlanData.mock
+            status: apiResponse.status,
+            message: nil,
+            planId: apiResponse.planId,
+            plan: apiResponse.toMacroPlanData()
         )
-        // return try await api.post("/plans/macro", body: request)
     }
 
     /// Crée un MacroPlan avec les paramètres individuels
@@ -61,18 +62,79 @@ class MacroPlanService {
 
     // MARK: - Get MacroPlan
 
-    /// Récupère le dernier MacroPlan de l'utilisateur
+    /// Récupère le plan actif de l'utilisateur depuis le backend
     func getLastMacroPlan(userId: String) async throws -> MacroPlanData? {
-        // MOCK: Return mock plan immediately
-        return MacroPlanData.mock
-        
-        /*
-        struct Response: Decodable {
-            let plan: MacroPlanData?
+        #if DEBUG
+        print("🔍 [MacroPlanService] ==========================================")
+        print("🔍 [MacroPlanService] Appel API pour userId: '\(userId)'")
+        print("🔍 [MacroPlanService] URL: /plans/macro/user/\(userId)/active")
+        #endif
+
+        do {
+            // Appel au vrai endpoint backend
+            let response: MacroPlanAPIResponse = try await api.get("/plans/macro/user/\(userId)/active")
+
+            #if DEBUG
+            print("📥 [MacroPlanService] Réponse reçue:")
+            print("   - status: \(response.status)")
+            print("   - planId: \(response.planId ?? "nil")")
+            print("   - masterPlan présent: \(response.masterPlan != nil)")
+            if let mp = response.masterPlan {
+                print("   - masterPlan.planId: \(mp.planId)")
+                print("   - masterPlan.totalWeeks: \(mp.totalWeeks)")
+                print("   - masterPlan.objectives: \(mp.objectives?.count ?? 0)")
+            }
+            print("   - summary présent: \(response.summary != nil)")
+            if let summary = response.summary {
+                print("   - summary.visualBars: \(summary.visualBars?.count ?? 0)")
+            }
+            #endif
+
+            // Vérifier le statut
+            guard response.status == "success" else {
+                #if DEBUG
+                print("⚠️ [MacroPlanService] API returned status '\(response.status)'")
+                #endif
+                return nil
+            }
+
+            // Convertir la réponse API en modèle iOS
+            let planData = response.toMacroPlanData()
+
+            #if DEBUG
+            if let plan = planData {
+                print("✅ [MacroPlanService] Conversion réussie:")
+                print("   - id: \(plan.id)")
+                print("   - name: \(plan.name ?? "nil")")
+                print("   - objectives: \(plan.objectives?.count ?? 0)")
+                print("   - visualBars: \(plan.visualBars?.count ?? 0)")
+            } else {
+                print("⚠️ [MacroPlanService] Conversion retourne nil")
+            }
+            print("🔍 [MacroPlanService] ==========================================")
+            #endif
+
+            return planData
+
+        } catch APIError.notFound {
+            #if DEBUG
+            print("ℹ️ [MacroPlanService] 404 - Aucun plan actif pour userId: '\(userId)'")
+            #endif
+            return nil
+        } catch APIError.httpError(404, let message) {
+            #if DEBUG
+            print("ℹ️ [MacroPlanService] HTTP 404 - \(message ?? "no message")")
+            #endif
+            return nil
+        } catch {
+            #if DEBUG
+            print("❌ [MacroPlanService] ERREUR:")
+            print("   - Type: \(type(of: error))")
+            print("   - Description: \(error.localizedDescription)")
+            print("   - Détail: \(error)")
+            #endif
+            throw error
         }
-        let response: Response = try await api.get("/users/\(userId)/plans/macro/last")
-        return response.plan
-        */
     }
 
     /// Récupère un MacroPlan par son ID

@@ -49,8 +49,10 @@ struct DashboardView: View {
                     }
 
                     // Afficher les widgets dans l'ordre configuré
-                    ForEach(viewModel.enabledWidgetTypes(), id: \.self) { widgetType in
+                    let enabledWidgets = viewModel.enabledWidgetTypes()
+                    ForEach(Array(enabledWidgets.enumerated()), id: \.element) { index, widgetType in
                         widgetView(for: widgetType)
+                            .staggeredAnimation(index: index, totalCount: enabledWidgets.count)
                     }
                 }
                 .padding(.vertical)
@@ -495,7 +497,7 @@ struct SportCard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: themeManager.cardShadowRadius, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 
@@ -642,7 +644,7 @@ struct PlannedSessionsSection: View {
                     } label: {
                         PlannedSessionRow(session: session)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.premium)
                 }
             }
         }
@@ -1115,7 +1117,7 @@ struct SportCardCompact: View {
             .background(themeManager.elevatedColor.opacity(0.5))
             .cornerRadius(ECRadius.md)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 
@@ -1162,7 +1164,7 @@ struct PlannedSessionsContent: View {
                     } label: {
                         PlannedSessionRowCompact(session: session)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.premium)
                 }
             }
         }
@@ -1218,7 +1220,7 @@ struct MacroPlanCard: View {
                     .stroke(themeManager.accentColor.opacity(0.3), lineWidth: 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 

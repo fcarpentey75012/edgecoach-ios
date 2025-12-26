@@ -625,7 +625,7 @@ struct VMACard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
         .sheet(isPresented: $showDetail) {
             VMADetailView(vma: viewModel.performanceReport?.metrics.vma)
         }
@@ -739,7 +739,7 @@ struct CSDprimeCard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
         .sheet(isPresented: $showDetail) {
             CSDprimeDetailView(
                 csDprime: viewModel.performanceReport?.metrics.csDprime,
@@ -841,7 +841,7 @@ struct FTPCard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
         .sheet(isPresented: $showDetail) {
             FTPDetailView(ftp: viewModel.performanceReport?.metrics.ftp)
         }
@@ -956,7 +956,7 @@ struct FTPHybridCard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
         .sheet(isPresented: $showDetail) {
             FTPHybridDetailView(ftpHybrid: viewModel.performanceReport?.metrics.ftpHybrid)
         }
@@ -1043,7 +1043,7 @@ struct CSSCard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
         .sheet(isPresented: $showDetail) {
             CSSDetailView(css: viewModel.performanceReport?.metrics.css)
         }
@@ -1126,7 +1126,7 @@ struct BestDistancesCard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
         .sheet(isPresented: $showDetail) {
             BestDistancesDetailView(records: viewModel.sortedBestDistances)
         }
@@ -1245,7 +1245,7 @@ struct CPWprimeCard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
         .sheet(isPresented: $showDetail) {
             CPWprimeDetailView(cpWprime: viewModel.performanceReport?.metrics.cpWprime)
         }
@@ -1507,7 +1507,7 @@ struct RunningTechniqueCard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
         .sheet(isPresented: $showDetail) {
             RunningTechniqueDetailView(
                 technique: viewModel.performanceReport?.meta?.technique?.running,
@@ -1598,7 +1598,7 @@ struct CyclingTechniqueCard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
         .sheet(isPresented: $showDetail) {
             CyclingTechniqueDetailView(
                 technique: viewModel.performanceReport?.meta?.technique?.cycling,
@@ -1687,7 +1687,7 @@ struct SwimmingTechniqueCard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
         .sheet(isPresented: $showDetail) {
             SwimmingTechniqueDetailView(
                 technique: viewModel.performanceReport?.meta?.technique?.swimming,

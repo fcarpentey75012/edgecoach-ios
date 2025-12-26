@@ -163,10 +163,30 @@ extension DashboardViewModel {
     // MARK: - Load Macro Plan
 
     func loadMacroPlan(userId: String) async {
+        #if DEBUG
+        print("🔄 [MacroPlan] Chargement du plan pour userId: \(userId)")
+        #endif
+
         do {
             macroPlan = try await MacroPlanService.shared.getLastMacroPlan(userId: userId)
+
+            #if DEBUG
+            if let plan = macroPlan {
+                print("✅ [MacroPlan] Plan chargé avec succès:")
+                print("   - ID: \(plan.id)")
+                print("   - Nom: \(plan.name ?? "Sans nom")")
+                print("   - Objectifs: \(plan.objectives?.count ?? 0)")
+                print("   - Visual bars: \(plan.visualBars?.count ?? 0)")
+            } else {
+                print("ℹ️ [MacroPlan] Aucun plan actif pour cet utilisateur")
+            }
+            #endif
         } catch {
-            print("Erreur chargement macro plan: \(error.localizedDescription)")
+            #if DEBUG
+            print("❌ [MacroPlan] Erreur chargement:")
+            print("   - Description: \(error.localizedDescription)")
+            print("   - Erreur complète: \(error)")
+            #endif
         }
     }
 

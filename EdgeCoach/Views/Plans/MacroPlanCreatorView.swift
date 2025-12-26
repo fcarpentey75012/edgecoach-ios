@@ -854,7 +854,7 @@ private struct SelectionCard: View {
                     .stroke(isSelected ? themeManager.accentColor : themeManager.borderColor, lineWidth: 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 
@@ -902,7 +902,7 @@ private struct PrioritySelectionRow: View {
                     .stroke(isSelected ? themeManager.accentColor : themeManager.borderColor, lineWidth: 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
     
     var priorityColor: Color {

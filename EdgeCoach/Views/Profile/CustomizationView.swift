@@ -128,7 +128,7 @@ struct CustomizationRow: View {
             }
             .padding(.vertical, ECSpacing.xs)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
         .listRowBackground(themeManager.cardColor)
     }
 }

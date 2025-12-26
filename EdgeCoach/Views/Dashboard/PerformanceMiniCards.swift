@@ -155,7 +155,7 @@ struct RunningPerformanceMiniCard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: themeManager.cardShadowRadius, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 
@@ -308,7 +308,7 @@ struct CyclingPerformanceMiniCard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: themeManager.cardShadowRadius, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 
@@ -351,7 +351,7 @@ struct SwimmingPerformanceMiniCard: View {
     /// Analyse du profil nageur basée sur CSS et confiance
     private var profileAnalysis: (title: String, icon: String, tip: String) {
         let cssPer100m = css.value
-        let confidence = css.confidence
+        let confidence = css.confidence ?? 0
 
         if cssPer100m <= 85 && confidence >= 0.7 {
             return ("Confirmé", "star.circle.fill", "Technique efficace")
@@ -393,7 +393,7 @@ struct SwimmingPerformanceMiniCard: View {
                     VStack(alignment: .trailing, spacing: 0) {
                         Text("\(css.confidencePercent)%")
                             .font(.system(size: 14, weight: .semibold, design: .rounded))
-                            .foregroundColor(css.confidence >= 0.7 ? themeManager.successColor : themeManager.warningColor)
+                            .foregroundColor((css.confidence ?? 0) >= 0.7 ? themeManager.successColor : themeManager.warningColor)
                         Text("confiance")
                             .font(.system(size: 8))
                             .foregroundColor(themeManager.textTertiary)
@@ -448,7 +448,7 @@ struct SwimmingPerformanceMiniCard: View {
             )
             .shadow(color: themeManager.cardShadow, radius: themeManager.cardShadowRadius, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 

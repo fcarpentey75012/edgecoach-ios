@@ -190,26 +190,25 @@ struct SummaryCardsView: View {
     @EnvironmentObject var themeManager: ThemeManager
     let summary: StatsSummaryData
 
+    private var summaryItems: [(icon: String, color: Color, value: String, label: String)] {
+        [
+            ("clock", themeManager.accentColor, formatDuration(summary.totalDuration), "Temps"),
+            ("flame", themeManager.errorColor, "\(summary.totalCalories)", "Calories"),
+            ("figure.run", themeManager.successColor, "\(summary.sessionsCount)", "Séances")
+        ]
+    }
+
     var body: some View {
         HStack(spacing: ECSpacing.md) {
-            SummaryCard(
-                icon: "clock",
-                iconColor: themeManager.accentColor,
-                value: formatDuration(summary.totalDuration),
-                label: "Temps"
-            )
-            SummaryCard(
-                icon: "flame",
-                iconColor: themeManager.errorColor,
-                value: "\(summary.totalCalories)",
-                label: "Calories"
-            )
-            SummaryCard(
-                icon: "figure.run",
-                iconColor: themeManager.successColor,
-                value: "\(summary.sessionsCount)",
-                label: "Séances"
-            )
+            ForEach(Array(summaryItems.enumerated()), id: \.offset) { index, item in
+                SummaryCard(
+                    icon: item.icon,
+                    iconColor: item.color,
+                    value: item.value,
+                    label: item.label
+                )
+                .staggeredAnimation(index: index, totalCount: summaryItems.count)
+            }
         }
     }
 
@@ -831,7 +830,7 @@ struct ZonesDistributionCard: View {
             }
 
             VStack(spacing: ECSpacing.sm) {
-                ForEach(viewModel.zonesDistribution) { zone in
+                ForEach(Array(viewModel.zonesDistribution.enumerated()), id: \.element.id) { index, zone in
                     HStack(spacing: ECSpacing.sm) {
                         Text("Z\(zone.zone)")
                             .font(.ecCaptionBold)
@@ -863,6 +862,7 @@ struct ZonesDistributionCard: View {
                             .foregroundColor(themeManager.textSecondary)
                             .frame(width: 40, alignment: .trailing)
                     }
+                    .staggeredAnimation(index: index, totalCount: viewModel.zonesDistribution.count)
                 }
             }
         }

@@ -397,7 +397,7 @@ struct VMAProfileAnalysis: View {
 
     private var profileAnalysis: (title: String, description: String, icon: String, recommendation: String) {
         let vmaValue = vma.value
-        let confidence = vma.confidence
+        let confidence = vma.confidence ?? 0
 
         if vmaValue >= 20 && confidence >= 0.7 {
             return (
@@ -1005,7 +1005,7 @@ struct FTPProfileAnalysis: View {
     let wPerKg: Double?
 
     private var profileAnalysis: (title: String, description: String, icon: String, recommendation: String) {
-        let confidence = ftp.confidence
+        let confidence = ftp.confidence ?? 0
         let wkg = wPerKg ?? (ftp.value / 70) // Estimation si pas de poids
 
         if wkg >= 4.5 && confidence >= 0.7 {
@@ -3659,7 +3659,7 @@ struct SwimmingProfileAnalysis: View {
 
     private var profileAnalysis: (title: String, description: String, icon: String, recommendation: String) {
         let cssPer100m = css.value
-        let confidence = css.confidence
+        let confidence = css.confidence ?? 0
 
         if cssPer100m <= 85 && confidence >= 0.7 {
             return (

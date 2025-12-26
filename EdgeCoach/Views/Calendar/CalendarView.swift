@@ -32,12 +32,12 @@ struct CalendarView: View {
                 .padding(.horizontal, ECSpacing.md)
                 .padding(.vertical, ECSpacing.sm)
 
-                if viewModel.viewMode == .month {
-                    // Vue Mois (existante)
-                    monthView
-                } else {
-                    // Vue Semaine (WeekPlanView)
+                if viewModel.viewMode == .week {
+                    // Vue Planifié (WeekPlanView)
                     weekView
+                } else {
+                    // Vue Réalisé (WeekActivitiesView)
+                    activitiesView
                 }
             }
             .background(themeManager.backgroundColor)
@@ -89,48 +89,7 @@ struct CalendarView: View {
         }
     }
 
-    // MARK: - Month View
-
-    @ViewBuilder
-    private var monthView: some View {
-        VStack(spacing: 0) {
-            // Month Header
-            CalendarHeader(
-                currentMonth: viewModel.currentMonth,
-                onPreviousMonth: { viewModel.previousMonth() },
-                onNextMonth: { viewModel.nextMonth() },
-                onToday: { viewModel.goToToday() }
-            )
-
-            // Week Days Header
-            WeekDaysHeader()
-
-            // Calendar Grid
-            CalendarGrid(
-                viewModel: viewModel,
-                onDateSelected: { date in
-                    viewModel.selectDate(date)
-                }
-            )
-
-            Divider()
-                .background(themeManager.borderColor)
-                .padding(.vertical, ECSpacing.sm)
-
-            // Selected Date Content
-            SelectedDateContent(
-                viewModel: viewModel,
-                onActivityTap: { activity in
-                    selectedActivity = activity
-                },
-                onPlannedSessionTap: { session in
-                    selectedPlannedSession = session
-                }
-            )
-        }
-    }
-
-    // MARK: - Week View
+    // MARK: - Week View (Planifié)
 
     @ViewBuilder
     private var weekView: some View {
@@ -180,6 +139,18 @@ struct CalendarView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+    }
+
+    // MARK: - Activities View (Réalisé)
+
+    @ViewBuilder
+    private var activitiesView: some View {
+        WeekActivitiesView(
+            viewModel: viewModel,
+            onActivityTap: { activity in
+                selectedActivity = activity
+            }
+        )
     }
 }
 
@@ -390,13 +361,14 @@ struct SelectedDateContent: View {
                                 .foregroundColor(themeManager.textSecondary)
                                 .padding(.horizontal, ECSpacing.md)
 
-                            ForEach(sessions) { session in
+                            ForEach(Array(sessions.enumerated()), id: \.element.id) { index, session in
                                 Button {
                                     onPlannedSessionTap(session)
                                 } label: {
                                     CalendarSessionCard(session: session)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.premium)
+                                .staggeredAnimation(index: index, totalCount: sessions.count)
                             }
                         }
                     }
@@ -409,13 +381,14 @@ struct SelectedDateContent: View {
                                 .foregroundColor(themeManager.textSecondary)
                                 .padding(.horizontal, ECSpacing.md)
 
-                            ForEach(activities) { activity in
+                            ForEach(Array(activities.enumerated()), id: \.element.id) { index, activity in
                                 Button {
                                     onActivityTap(activity)
                                 } label: {
                                     CalendarActivityCard(activity: activity)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.premium)
+                                .staggeredAnimation(index: index, totalCount: activities.count)
                             }
                         }
                     }
@@ -462,7 +435,7 @@ struct CalendarSessionCard: View {
                     .fill(themeManager.sportColor(for: session.discipline).opacity(0.15))
                     .frame(width: 40, height: 40)
 
-                DisciplineIconView(discipline: session.discipline, size: 16, useCustomImage: true)
+                DisciplineIconView(discipline: session.discipline, size: 16)
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -533,7 +506,7 @@ struct CalendarActivityCard: View {
 
     var body: some View {
         HStack(spacing: ECSpacing.md) {
-            // Barre colorée sport (alignée avec CycleSessionCard)
+            // Barre colorée sport (alignée avec CalendarSessionCard)
             Rectangle()
                 .fill(themeManager.sportColor(for: activity.discipline))
                 .frame(width: 4)
@@ -545,7 +518,7 @@ struct CalendarActivityCard: View {
                     .fill(themeManager.sportColor(for: activity.discipline).opacity(0.15))
                     .frame(width: 40, height: 40)
 
-                DisciplineIconView(discipline: activity.discipline, size: 16, useCustomImage: true)
+                DisciplineIconView(discipline: activity.discipline, size: 16)
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -566,21 +539,22 @@ struct CalendarActivityCard: View {
                             .font(.ecCaption)
                             .foregroundColor(themeManager.textSecondary)
                     }
+
+                    // TSS affiché comme badge (aligné avec le badge intensité de CalendarSessionCard)
+                    if let tss = activity.tss {
+                        Text("\(tss) TSS")
+                            .font(.ecSmall)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(tssColor(tss))
+                            .cornerRadius(4)
+                    }
                 }
             }
 
             Spacer()
-
-            if let tss = activity.tss {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(tss)")
-                        .font(.ecLabelBold)
-                        .foregroundColor(themeManager.textPrimary)
-                    Text("TSS")
-                        .font(.ecSmall)
-                        .foregroundColor(themeManager.textSecondary)
-                }
-            }
 
             Image(systemName: "chevron.right")
                 .font(.ecCaption)
@@ -595,6 +569,16 @@ struct CalendarActivityCard: View {
         )
         .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
         .padding(.horizontal, ECSpacing.md)
+    }
+
+    private func tssColor(_ tss: Int) -> Color {
+        switch tss {
+        case 0..<50: return .blue.opacity(0.7)
+        case 50..<100: return .green
+        case 100..<150: return .yellow.opacity(0.8)
+        case 150..<200: return .orange
+        default: return .red
+        }
     }
 }
 

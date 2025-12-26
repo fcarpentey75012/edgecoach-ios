@@ -304,6 +304,7 @@ struct SessionTabSelector: View {
                         )
                         .cornerRadius(ECRadius.md)
                 }
+                .buttonStyle(.premium)
             }
         }
         .padding(ECSpacing.xs)
@@ -320,8 +321,9 @@ struct SessionResumeContent: View {
 
     var body: some View {
         VStack(spacing: ECSpacing.md) {
-            ForEach(preferences.sectionsOrder) { section in
+            ForEach(Array(preferences.sectionsOrder.enumerated()), id: \.element.id) { index, section in
                 sectionView(for: section)
+                    .staggeredAnimation(index: index, totalCount: preferences.sectionsOrder.count)
             }
         }
     }
@@ -1247,10 +1249,21 @@ struct SessionLapsContent: View {
     @State private var selectedLap: ActivityLap?
     @State private var selectedLapIndex: Int?
 
+    // Annotations des intervalles
+    @State private var intervalAnnotations: [IntervalAnnotation] = []
+    @State private var showingAnnotationSheet = false
+    @State private var annotatingLapIndex: Int?
+    @State private var isSavingAnnotation = false
+
     // Métriques max pour l'échelle relative
     private var maxLapPower: Double { laps?.compactMap { $0.avgPower }.max() ?? 1 }
     private var maxLapHR: Double { laps?.compactMap { $0.avgHeartRate }.max() ?? 1 }
     private var maxLapSpeed: Double { laps?.compactMap { $0.avgSpeedKmh }.max() ?? 1 }
+
+    // Helper pour trouver l'annotation d'un lap
+    private func annotationForLap(at index: Int) -> IntervalAnnotation? {
+        intervalAnnotations.first { $0.lapIndex == index }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: ECSpacing.md) {
@@ -1293,34 +1306,42 @@ struct SessionLapsContent: View {
                     // Plusieurs intervalles: liste cliquable avec analyse visuelle
                     VStack(spacing: 0) {
                         ForEach(Array(laps.enumerated()), id: \.element.id) { index, lap in
-                            LapRowInteractive(
-                                index: index + 1,
-                                lap: lap,
-                                discipline: activity.discipline,
-                                isSelected: selectedLapIndex == index,
-                                context: LapContext(maxPower: maxLapPower, maxHR: maxLapHR, maxSpeed: maxLapSpeed)
-                            ) {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    if selectedLapIndex == index {
-                                        selectedLapIndex = nil
-                                        selectedLap = nil
-                                    } else {
-                                        selectedLapIndex = index
-                                        selectedLap = lap
+                            VStack(spacing: 0) {
+                                LapRowInteractive(
+                                    index: index + 1,
+                                    lap: lap,
+                                    discipline: activity.discipline,
+                                    isSelected: selectedLapIndex == index,
+                                    context: LapContext(maxPower: maxLapPower, maxHR: maxLapHR, maxSpeed: maxLapSpeed),
+                                    annotation: annotationForLap(at: index),
+                                    onTap: {
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            if selectedLapIndex == index {
+                                                selectedLapIndex = nil
+                                                selectedLap = nil
+                                            } else {
+                                                selectedLapIndex = index
+                                                selectedLap = lap
+                                            }
+                                        }
+                                    },
+                                    onAnnotate: {
+                                        openAnnotationSheet(for: index)
                                     }
+                                )
+
+                                // Détails expandables
+                                if selectedLapIndex == index {
+                                    LapDetailExpandedView(lap: lap, discipline: activity.discipline)
+                                        .transition(.opacity.combined(with: .move(edge: .top)))
+                                }
+
+                                if index < laps.count - 1 {
+                                    Divider()
+                                        .padding(.horizontal, ECSpacing.md)
                                 }
                             }
-
-                            // Détails expandables
-                            if selectedLapIndex == index {
-                                LapDetailExpandedView(lap: lap, discipline: activity.discipline)
-                                    .transition(.opacity.combined(with: .move(edge: .top)))
-                            }
-
-                            if index < laps.count - 1 {
-                                Divider()
-                                    .padding(.horizontal, ECSpacing.md)
-                            }
+                            .staggeredAnimation(index: index, totalCount: laps.count)
                         }
                     }
                     .themedCard()
@@ -1346,7 +1367,100 @@ struct SessionLapsContent: View {
         }
         .task {
             await loadLapsData()
+            await loadAnnotations()
         }
+        .sheet(isPresented: $showingAnnotationSheet) {
+            if let lapIndex = annotatingLapIndex,
+               let laps = laps,
+               lapIndex < laps.count {
+                IntervalAnnotationSheet(
+                    lap: laps[lapIndex],
+                    lapIndex: lapIndex,
+                    discipline: activity.discipline,
+                    existingAnnotation: annotationForLap(at: lapIndex)
+                ) { annotation in
+                    Task {
+                        await saveAnnotation(annotation)
+                    }
+                }
+                .environmentObject(themeManager)
+            }
+        }
+    }
+
+    // MARK: - Load Annotations
+
+    private func loadAnnotations() async {
+        guard let userId = authViewModel.user?.id else { return }
+
+        do {
+            if let logbook = try await LogbookService.shared.getLogbookBySessionId(
+                userId: userId,
+                sessionId: activity.id
+            ) {
+                if let annotations = logbook.intervalAnnotations {
+                    self.intervalAnnotations = annotations
+                    #if DEBUG
+                    print("📝 Loaded \(annotations.count) interval annotations")
+                    #endif
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("❌ Error loading annotations: \(error)")
+            #endif
+        }
+    }
+
+    // MARK: - Save Annotation
+
+    private func saveAnnotation(_ annotation: IntervalAnnotation) async {
+        guard let userId = authViewModel.user?.id else { return }
+
+        isSavingAnnotation = true
+
+        // Mettre à jour la liste locale
+        if let existingIndex = intervalAnnotations.firstIndex(where: { $0.lapIndex == annotation.lapIndex }) {
+            intervalAnnotations[existingIndex] = annotation
+        } else {
+            intervalAnnotations.append(annotation)
+        }
+
+        // Charger le logbook existant et le mettre à jour
+        do {
+            var logbook = try await LogbookService.shared.getLogbookBySessionId(
+                userId: userId,
+                sessionId: activity.id
+            ) ?? LogbookData.empty
+
+            logbook.intervalAnnotations = intervalAnnotations
+
+            try await LogbookService.shared.saveLogbook(
+                userId: userId,
+                sessionId: activity.id,
+                mongoId: activity.id,
+                logbook: logbook,
+                sessionDate: activity.dateStart,
+                sessionName: activity.displayTitle
+            )
+
+            #if DEBUG
+            print("✅ Saved annotation for lap \(annotation.lapIndex)")
+            #endif
+        } catch {
+            #if DEBUG
+            print("❌ Error saving annotation: \(error)")
+            #endif
+        }
+
+        isSavingAnnotation = false
+    }
+
+    // MARK: - Open Annotation Sheet
+
+    private func openAnnotationSheet(for lapIndex: Int) {
+        annotatingLapIndex = lapIndex
+        showingAnnotationSheet = true
     }
 
     private func loadLapsData() async {
@@ -1591,68 +1705,118 @@ private struct LapRowInteractive: View {
     let discipline: Discipline
     let isSelected: Bool
     var context: LapContext?
+    var annotation: IntervalAnnotation?
     let onTap: () -> Void
+    var onAnnotate: (() -> Void)?
     @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
         let sportColor = themeManager.sportColor(for: discipline)
 
-        Button(action: onTap) {
-            HStack(spacing: ECSpacing.md) {
-                // Numéro
-                Text("\(index)")
-                    .font(.ecCaptionBold)
-                    .foregroundColor(.white)
-                    .frame(width: 28, height: 28)
-                    .background(isSelected ? themeManager.accentColor : themeManager.textTertiary)
-                    .cornerRadius(6)
+        HStack(spacing: 0) {
+            // Zone principale cliquable pour expand/collapse
+            Button(action: onTap) {
+                HStack(spacing: ECSpacing.md) {
+                    // Numéro avec indicateur d'annotation
+                    ZStack(alignment: .topTrailing) {
+                        Text("\(index)")
+                            .font(.ecCaptionBold)
+                            .foregroundColor(.white)
+                            .frame(width: 28, height: 28)
+                            .background(isSelected ? themeManager.accentColor : themeManager.textTertiary)
+                            .cornerRadius(6)
 
-                // Durée et distance (Colonne fixe)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(lap.formattedDuration)
-                        .font(.ecBodyMedium)
-                        .foregroundColor(themeManager.textPrimary)
-                        .monospacedDigit()
-
-                    Text(lap.formattedDistance)
-                        .font(.ecSmall)
-                        .foregroundColor(themeManager.textSecondary)
-                }
-                .frame(width: 70, alignment: .leading)
-
-                Spacer()
-                
-                // Métrique principale avec barre d'intensité
-                mainMetricView(sportColor: sportColor)
-                
-                // Secondaire (FC) si dispo
-                if let avgHr = lap.avgHeartRate {
-                    let isMax = (context != nil && context!.maxHR > 0) ? (avgHr >= context!.maxHR) : false
-                    VStack(alignment: .trailing, spacing: 0) {
-                        HStack(spacing: 2) {
-                            if isMax { Text("🏆").font(.system(size: 8)) }
-                            Text("\(Int(avgHr))")
-                                .font(.ecBodyMedium)
-                                .foregroundColor(themeManager.errorColor)
+                        // Indicateur si annoté
+                        if annotation != nil {
+                            Circle()
+                                .fill(themeManager.successColor)
+                                .frame(width: 8, height: 8)
+                                .offset(x: 2, y: -2)
                         }
-                        Text("bpm")
-                            .font(.system(size: 9))
-                            .foregroundColor(themeManager.textTertiary)
                     }
-                    .frame(width: 40, alignment: .trailing)
-                }
 
-                // Indicateur d'expansion
-                Image(systemName: isSelected ? "chevron.up" : "chevron.down")
-                    .font(.ecCaption)
-                    .foregroundColor(themeManager.textTertiary)
-                    .frame(width: 12)
+                    // Durée et distance (Colonne fixe)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(lap.formattedDuration)
+                            .font(.ecBodyMedium)
+                            .foregroundColor(themeManager.textPrimary)
+                            .monospacedDigit()
+
+                        HStack(spacing: 4) {
+                            Text(lap.formattedDistance)
+                                .font(.ecSmall)
+                                .foregroundColor(themeManager.textSecondary)
+
+                            // Mini indicateurs d'annotation
+                            if let ann = annotation {
+                                if ann.feeling != nil {
+                                    Image(systemName: ann.feeling!.icon)
+                                        .font(.system(size: 9))
+                                        .foregroundColor(feelingColor(ann.feeling!))
+                                }
+                                if ann.comment != nil && !ann.comment!.isEmpty {
+                                    Image(systemName: "text.bubble.fill")
+                                        .font(.system(size: 9))
+                                        .foregroundColor(themeManager.accentColor)
+                                }
+                            }
+                        }
+                    }
+                    .frame(width: 85, alignment: .leading)
+
+                    Spacer()
+
+                    // Métrique principale avec barre d'intensité
+                    mainMetricView(sportColor: sportColor)
+
+                    // Secondaire (FC) si dispo
+                    if let avgHr = lap.avgHeartRate {
+                        let isMax = (context != nil && context!.maxHR > 0) ? (avgHr >= context!.maxHR) : false
+                        VStack(alignment: .trailing, spacing: 0) {
+                            HStack(spacing: 2) {
+                                if isMax { Text("🏆").font(.system(size: 8)) }
+                                Text("\(Int(avgHr))")
+                                    .font(.ecBodyMedium)
+                                    .foregroundColor(themeManager.errorColor)
+                            }
+                            Text("bpm")
+                                .font(.system(size: 9))
+                                .foregroundColor(themeManager.textTertiary)
+                        }
+                        .frame(width: 40, alignment: .trailing)
+                    }
+
+                    // Indicateur d'expansion
+                    Image(systemName: isSelected ? "chevron.up" : "chevron.down")
+                        .font(.ecCaption)
+                        .foregroundColor(themeManager.textTertiary)
+                        .frame(width: 12)
+                }
+                .padding(.leading, ECSpacing.md)
+                .padding(.vertical, ECSpacing.sm)
+                .background(isSelected ? themeManager.accentColor.opacity(0.05) : Color.clear)
             }
-            .padding(.horizontal, ECSpacing.md)
-            .padding(.vertical, ECSpacing.sm)
-            .background(isSelected ? themeManager.accentColor.opacity(0.05) : Color.clear)
+            .buttonStyle(.premium)
+
+            // Bouton d'annotation
+            if let onAnnotate = onAnnotate {
+                Button(action: onAnnotate) {
+                    Image(systemName: annotation != nil ? "pencil.circle.fill" : "pencil.circle")
+                        .font(.system(size: 20))
+                        .foregroundColor(annotation != nil ? themeManager.successColor : themeManager.textTertiary)
+                }
+                .buttonStyle(.premium)
+                .padding(.horizontal, ECSpacing.sm)
+            }
         }
-        .buttonStyle(PlainButtonStyle())
+    }
+
+    private func feelingColor(_ feeling: IntervalFeeling) -> Color {
+        switch feeling {
+        case .good: return .ecSuccess
+        case .neutral: return .ecWarning
+        case .hard: return .ecError
+        }
     }
     
     @ViewBuilder

@@ -224,7 +224,7 @@ struct EquipmentView: View {
                             themeManager: themeManager
                         )
                     }
-                    .buttonStyle(.plain) // Important pour ne pas avoir l'effet bleu par défaut
+                    .buttonStyle(.premium) // Important pour ne pas avoir l'effet bleu par défaut
                 }
             }
             .padding(.horizontal)
@@ -389,7 +389,7 @@ struct SportSelectionPill: View {
                     .foregroundColor(isSelected ? themeManager.textPrimary : themeManager.textSecondary)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
         .frame(maxWidth: .infinity)
     }
 }

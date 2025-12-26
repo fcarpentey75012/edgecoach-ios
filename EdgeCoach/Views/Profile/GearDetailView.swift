@@ -117,7 +117,7 @@ struct GearDetailView: View {
                     .frame(width: 150, height: 150)
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.premium)
 
             VStack(spacing: 4) {
                 Text(gear.displayName)

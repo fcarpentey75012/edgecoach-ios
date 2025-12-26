@@ -282,7 +282,7 @@ struct ObjectivesListView: View {
                     .stroke(themeManager.accentColor, style: StrokeStyle(lineWidth: 2, dash: [8]))
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 

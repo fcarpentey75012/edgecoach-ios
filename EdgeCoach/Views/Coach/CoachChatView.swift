@@ -320,7 +320,7 @@ struct ConversationsSidebar: View {
             // Liste des conversations
             ScrollView {
                 LazyVStack(spacing: ECSpacing.xs) {
-                    ForEach(conversations) { conversation in
+                    ForEach(Array(conversations.enumerated()), id: \.element.id) { index, conversation in
                         ConversationRow(
                             conversation: conversation,
                             isSelected: conversation.id == currentConversationId,
@@ -334,6 +334,7 @@ struct ConversationsSidebar: View {
                                 onDeleteConversation(conversation)
                             }
                         )
+                        .staggeredAnimation(index: index, totalCount: conversations.count)
                     }
                 }
                 .padding(.horizontal, ECSpacing.sm)
@@ -442,7 +443,7 @@ struct ConversationRow: View {
             .background(isSelected ? themeManager.accentColor.opacity(0.1) : Color.clear)
             .cornerRadius(ECRadius.md)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
         .contextMenu {
             Button(role: .destructive) {
                 showingDeleteConfirm = true
@@ -532,7 +533,7 @@ struct CoachHeader: View {
             .padding(.vertical, ECSpacing.sm)
             .background(themeManager.surfaceColor)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 
@@ -768,7 +769,7 @@ struct SportCategoryCard: View {
                     .stroke(isCurrentSport ? sportColor : themeManager.borderColor, lineWidth: isCurrentSport ? 2 : 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 
@@ -842,7 +843,7 @@ struct CoachCard: View {
                     .stroke(isSelected ? themeManager.accentColor : themeManager.borderColor, lineWidth: isSelected ? 2 : 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 
@@ -1241,7 +1242,7 @@ struct QuickActionsView: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: ECSpacing.sm) {
-                ForEach(actions, id: \.0) { action in
+                ForEach(Array(actions.enumerated()), id: \.element.0) { index, action in
                     Button {
                         onAction(action.0)
                     } label: {
@@ -1257,6 +1258,8 @@ struct QuickActionsView: View {
                         .foregroundColor(themeManager.accentColor)
                         .cornerRadius(ECRadius.full)
                     }
+                    .buttonStyle(.premium)
+                    .staggeredAnimation(index: index, totalCount: actions.count)
                 }
             }
             .padding(.horizontal, ECSpacing.md)

@@ -63,8 +63,21 @@ struct PMCStatusWidget: View {
 
     private func contentView(_ pmc: PMCStatus) -> some View {
         VStack(spacing: ECSpacing.md) {
-            // Jauge TSB principale
-            tsbGaugeView(pmc)
+            // SynergyRing + Jauge TSB
+            HStack(spacing: ECSpacing.md) {
+                // Synergy Ring pour visualiser le TSB
+                SynergyRingView(
+                    value: (pmc.tsb + 30) / 60, // Mapper TSB [-30, +30] sur [0, 1]
+                    overrideColor: pmc.formColor,
+                    size: 80,
+                    lineWidth: 8
+                )
+
+                // Jauge TSB et label
+                VStack(alignment: .leading, spacing: ECSpacing.xs) {
+                    tsbGaugeView(pmc)
+                }
+            }
 
             // Métriques CTL/ATL
             metricsRow(pmc)
@@ -150,7 +163,9 @@ struct PMCStatusWidget: View {
     // MARK: - Metrics Row
 
     private func metricsRow(_ pmc: PMCStatus) -> some View {
-        HStack(spacing: ECSpacing.md) {
+        let ramp = pmc.rampRate ?? 0
+
+        return HStack(spacing: ECSpacing.md) {
             // CTL (Fitness)
             metricCard(
                 title: "Fitness",
@@ -160,6 +175,7 @@ struct PMCStatusWidget: View {
                 color: .blue,
                 interpretation: ctlInterpretation(pmc.ctl)
             )
+            .staggeredAnimation(index: 0, totalCount: 3)
 
             // ATL (Fatigue)
             metricCard(
@@ -170,9 +186,9 @@ struct PMCStatusWidget: View {
                 color: .orange,
                 interpretation: atlInterpretation(pmc.atl)
             )
+            .staggeredAnimation(index: 1, totalCount: 3)
 
             // Ramp Rate
-            let ramp = pmc.rampRate ?? 0
             metricCard(
                 title: "Ramp",
                 subtitle: "TSS/sem",
@@ -181,6 +197,7 @@ struct PMCStatusWidget: View {
                 color: ramp > 7 ? .red : (ramp > 5 ? .orange : (ramp < -2 ? .blue : .green)),
                 interpretation: rampInterpretation(ramp)
             )
+            .staggeredAnimation(index: 2, totalCount: 3)
         }
     }
 

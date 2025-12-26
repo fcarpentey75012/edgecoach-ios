@@ -107,7 +107,7 @@ struct PerformanceMetrics: Codable {
 struct VMAMetric: Codable {
     let value: Double
     let unit: String
-    let confidence: Double
+    let confidence: Double?
     let standardDeviation: Double?
     let contributors: [VMAContributor]?
     let trainingZones: [TrainingZone]?
@@ -128,7 +128,7 @@ struct VMAMetric: Codable {
 
     /// Niveau de confiance en pourcentage
     var confidencePercent: Int {
-        Int(confidence * 100)
+        Int((confidence ?? 0) * 100)
     }
 }
 
@@ -171,7 +171,7 @@ struct VMAMetadata: Codable {
 struct FTPMetric: Codable {
     let value: Double
     let unit: String
-    let confidence: Double
+    let confidence: Double?
     let standardDeviation: Double?
     let contributors: [FTPContributor]?
     let trainingZones: [TrainingZone]?
@@ -192,7 +192,7 @@ struct FTPMetric: Codable {
 
     /// Niveau de confiance en pourcentage
     var confidencePercent: Int {
-        Int(confidence * 100)
+        Int((confidence ?? 0) * 100)
     }
 }
 
@@ -328,7 +328,7 @@ struct WPerKg: Codable {
 struct CSSMetric: Codable {
     let value: Double
     let unit: String
-    let confidence: Double
+    let confidence: Double?
     let standardDeviation: Double?
     let trainingZones: [TrainingZone]?
     let metadata: CSSMetadata?
@@ -359,7 +359,7 @@ struct CSSMetric: Codable {
 
     /// Niveau de confiance en pourcentage
     var confidencePercent: Int {
-        Int(confidence * 100)
+        Int((confidence ?? 0) * 100)
     }
 }
 

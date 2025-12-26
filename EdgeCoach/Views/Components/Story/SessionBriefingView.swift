@@ -478,35 +478,13 @@ struct DisciplineIconView: View {
     @EnvironmentObject var themeManager: ThemeManager
     let discipline: Discipline
     let size: CGFloat
-    var useCustomImage: Bool = false
+    var useCustomImage: Bool = false  // Paramètre conservé pour compatibilité, utilise toujours SF Symbols
 
     var body: some View {
-        if useCustomImage, let customIcon = customIconName {
-            // Utiliser l'icône custom si disponible
-            Image(customIcon)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: size, height: size)
-        } else {
-            // Utiliser l'icône SF Symbols par défaut
-            Image(systemName: discipline.icon)
-                .font(.system(size: size))
-                .foregroundColor(themeManager.sportColor(for: discipline))
-        }
-    }
-
-    /// Nom de l'icône custom pour la discipline
-    private var customIconName: String? {
-        switch discipline {
-        case .cyclisme:
-            return "cycling"
-        case .course:
-            return "running"
-        case .natation:
-            return "swimming"
-        case .autre:
-            return nil // Pas d'icône custom pour cette discipline
-        }
+        // Toujours utiliser les SF Symbols iOS
+        Image(systemName: AppIcon.forDiscipline(discipline).symbolName)
+            .font(.system(size: size))
+            .foregroundColor(themeManager.sportColor(for: discipline))
     }
 }
 

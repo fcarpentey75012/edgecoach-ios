@@ -434,6 +434,521 @@ struct MacroPlanResponse: Decodable {
     }
 }
 
+// MARK: - API Response Models (Backend)
+
+/// Réponse complète de l'API /plans/macro/user/<id>/active
+struct MacroPlanAPIResponse: Decodable {
+    let status: String
+    let planId: String?
+    let generatedAt: String?
+    let masterPlan: MasterSeasonPlanAPI?
+    let feasibility: FeasibilityAPI?
+    let summary: MacroPlanSummaryAPI?
+
+    enum CodingKeys: String, CodingKey {
+        case status
+        case planId = "plan_id"
+        case generatedAt = "generated_at"
+        case masterPlan = "master_plan"
+        case feasibility
+        case summary
+    }
+}
+
+/// MasterSeasonPlan du backend
+struct MasterSeasonPlanAPI: Decodable {
+    let planId: String
+    let seasonStart: String
+    let seasonEnd: String
+    let totalWeeks: Int
+    let planningMode: String
+    let objectives: [RaceObjectiveAPI]?
+    let mainObjective: RaceObjectiveAPI?
+    let secondaryObjectives: [RaceObjectiveAPI]?
+    let subPlans: [SubPlanAPI]?
+    let athleteSport: String?
+    let athleteLevel: String?
+    let createdAt: String?
+    let coordinatorRationale: String?
+    let coherenceScore: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case planId = "plan_id"
+        case seasonStart = "season_start"
+        case seasonEnd = "season_end"
+        case totalWeeks = "total_weeks"
+        case planningMode = "planning_mode"
+        case objectives
+        case mainObjective = "main_objective"
+        case secondaryObjectives = "secondary_objectives"
+        case subPlans = "sub_plans"
+        case athleteSport = "athlete_sport"
+        case athleteLevel = "athlete_level"
+        case createdAt = "created_at"
+        case coordinatorRationale = "coordinator_rationale"
+        case coherenceScore = "coherence_score"
+    }
+}
+
+/// Objectif du backend
+struct RaceObjectiveAPI: Decodable {
+    let name: String
+    let targetDate: String?
+    let priority: String
+    let objectiveType: String?
+    let sport: String?
+    let raceFormat: String?
+    let distanceValue: Double?
+    let distanceUnit: String?
+    let targetTime: String?
+    let location: String?
+    let description: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case targetDate = "target_date"
+        case priority
+        case objectiveType = "objective_type"
+        case sport
+        case raceFormat = "race_format"
+        case distanceValue = "distance_value"
+        case distanceUnit = "distance_unit"
+        case targetTime = "target_time"
+        case location
+        case description
+    }
+}
+
+/// SubPlan du backend
+struct SubPlanAPI: Decodable {
+    let subplanId: String
+    let name: String
+    let weekStart: Int
+    let weekEnd: Int
+    let durationWeeks: Int
+    let objective: RaceObjectiveAPI?
+    let methodologyId: String?
+    let methodologySegments: [MethodologySegmentAPI]?
+    let phases: [SubPlanPhaseAPI]?
+    let baseDistribution: [String: Double]?
+
+    enum CodingKeys: String, CodingKey {
+        case subplanId = "subplan_id"
+        case name
+        case weekStart = "week_start"
+        case weekEnd = "week_end"
+        case durationWeeks = "duration_weeks"
+        case objective
+        case methodologyId = "methodology_id"
+        case methodologySegments = "methodology_segments"
+        case phases
+        case baseDistribution = "base_distribution"
+    }
+}
+
+/// Segment de méthodologie du backend
+struct MethodologySegmentAPI: Decodable {
+    let segmentId: String
+    let name: String
+    let weekStart: Int
+    let weekEnd: Int
+    let durationWeeks: Int
+    let segmentType: String
+    let methodologyId: String
+    let phases: [SubPlanPhaseAPI]?
+    let intensityModifier: Double?
+    let volumeModifier: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case segmentId = "segment_id"
+        case name
+        case weekStart = "week_start"
+        case weekEnd = "week_end"
+        case durationWeeks = "duration_weeks"
+        case segmentType = "segment_type"
+        case methodologyId = "methodology_id"
+        case phases
+        case intensityModifier = "intensity_modifier"
+        case volumeModifier = "volume_modifier"
+    }
+}
+
+/// Phase d'un SubPlan du backend
+struct SubPlanPhaseAPI: Decodable {
+    let name: String
+    let weekStart: Int
+    let weekEnd: Int
+    let durationWeeks: Int?
+    let focus: String?
+    let intensityLevel: Double?
+    let volumeLevel: Double?
+    let description: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case weekStart = "week_start"
+        case weekEnd = "week_end"
+        case durationWeeks = "duration_weeks"
+        case focus
+        case intensityLevel = "intensity_level"
+        case volumeLevel = "volume_level"
+        case description
+    }
+}
+
+/// Faisabilité du backend
+struct FeasibilityAPI: Decodable {
+    let isFeasible: Bool?
+    let warnings: [String]?
+    let gapsAnalysis: [GapAnalysisAPI]?
+
+    enum CodingKeys: String, CodingKey {
+        case isFeasible = "is_feasible"
+        case warnings
+        case gapsAnalysis = "gaps_analysis"
+    }
+}
+
+/// Analyse des gaps entre objectifs
+struct GapAnalysisAPI: Decodable {
+    let from: String?
+    let to: String?
+    let gapWeeks: Int?
+    let requiredWeeks: Int?
+    let status: String?
+
+    enum CodingKeys: String, CodingKey {
+        case from
+        case to
+        case gapWeeks = "gap_weeks"
+        case requiredWeeks = "required_weeks"
+        case status
+    }
+}
+
+/// Summary du plan (contient les visual_bars pour le frontend)
+struct MacroPlanSummaryAPI: Decodable {
+    let seasonStart: String?
+    let seasonEnd: String?
+    let totalWeeks: Int?
+    let totalDays: Int?
+    let planningMode: String?
+    let subPlansCount: Int?
+    let totalSegments: Int?
+    let totalPhases: Int?
+    let objectivesCount: Int?
+    let principalObjectives: [String]?
+    let focusWindowsCount: Int?
+    let methodologiesUsed: [String]?
+    let transferConfigsCount: Int?
+    let objectivesTimeline: [ObjectiveTimelineAPI]?
+    let subplansTimeline: [SubplanTimelineAPI]?
+    let segmentsTimeline: [SegmentTimelineAPI]?
+    let phasesTimeline: [PhaseTimelineAPI]?
+    let weeksOverview: [WeekOverviewAPI]?
+    let visualBars: [VisualBarAPI]?
+
+    enum CodingKeys: String, CodingKey {
+        case seasonStart = "season_start"
+        case seasonEnd = "season_end"
+        case totalWeeks = "total_weeks"
+        case totalDays = "total_days"
+        case planningMode = "planning_mode"
+        case subPlansCount = "sub_plans_count"
+        case totalSegments = "total_segments"
+        case totalPhases = "total_phases"
+        case objectivesCount = "objectives_count"
+        case principalObjectives = "principal_objectives"
+        case focusWindowsCount = "focus_windows_count"
+        case methodologiesUsed = "methodologies_used"
+        case transferConfigsCount = "transfer_configs_count"
+        case objectivesTimeline = "objectives_timeline"
+        case subplansTimeline = "subplans_timeline"
+        case segmentsTimeline = "segments_timeline"
+        case phasesTimeline = "phases_timeline"
+        case weeksOverview = "weeks_overview"
+        case visualBars = "visual_bars"
+    }
+}
+
+/// Timeline d'un objectif
+struct ObjectiveTimelineAPI: Decodable {
+    let name: String
+    let targetDate: String
+    let priority: String
+    let sport: String?
+    let raceFormat: String?
+    let weekNumber: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case targetDate = "target_date"
+        case priority
+        case sport
+        case raceFormat = "race_format"
+        case weekNumber = "week_number"
+    }
+}
+
+/// Timeline d'un SubPlan
+struct SubplanTimelineAPI: Decodable {
+    let name: String
+    let objectiveName: String
+    let weekStart: Int
+    let weekEnd: Int
+    let durationWeeks: Int
+    let startDate: String
+    let endDate: String
+    let segmentsCount: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case objectiveName = "objective_name"
+        case weekStart = "week_start"
+        case weekEnd = "week_end"
+        case durationWeeks = "duration_weeks"
+        case startDate = "start_date"
+        case endDate = "end_date"
+        case segmentsCount = "segments_count"
+    }
+}
+
+/// Timeline d'un segment
+struct SegmentTimelineAPI: Decodable {
+    let name: String
+    let subplanName: String
+    let segmentType: String
+    let weekStart: Int
+    let weekEnd: Int
+    let durationWeeks: Int
+    let startDate: String
+    let endDate: String
+    let methodologyId: String?
+    let methodologyName: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case subplanName = "subplan_name"
+        case segmentType = "segment_type"
+        case weekStart = "week_start"
+        case weekEnd = "week_end"
+        case durationWeeks = "duration_weeks"
+        case startDate = "start_date"
+        case endDate = "end_date"
+        case methodologyId = "methodology_id"
+        case methodologyName = "methodology_name"
+    }
+}
+
+/// Timeline d'une phase
+struct PhaseTimelineAPI: Decodable {
+    let name: String
+    let subplanName: String
+    let objectiveName: String
+    let focus: String?
+    let weekStart: Int
+    let weekEnd: Int
+    let durationWeeks: Int
+    let startDate: String
+    let endDate: String
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case subplanName = "subplan_name"
+        case objectiveName = "objective_name"
+        case focus
+        case weekStart = "week_start"
+        case weekEnd = "week_end"
+        case durationWeeks = "duration_weeks"
+        case startDate = "start_date"
+        case endDate = "end_date"
+    }
+}
+
+/// Aperçu d'une semaine
+struct WeekOverviewAPI: Decodable {
+    let weekNumber: Int
+    let startDate: String
+    let endDate: String
+    let subplan: String?
+    let segment: WeekSegmentAPI?
+    let phase: WeekPhaseAPI?
+    let objective: WeekObjectiveAPI?
+    let isRaceWeek: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case weekNumber = "week_number"
+        case startDate = "start_date"
+        case endDate = "end_date"
+        case subplan
+        case segment
+        case phase
+        case objective
+        case isRaceWeek = "is_race_week"
+    }
+}
+
+struct WeekSegmentAPI: Decodable {
+    let name: String
+    let type: String
+}
+
+struct WeekPhaseAPI: Decodable {
+    let name: String
+    let focus: String?
+}
+
+struct WeekObjectiveAPI: Decodable {
+    let name: String
+    let priority: String
+    let date: String
+}
+
+/// Barre visuelle du backend (pour timeline Gantt)
+struct VisualBarAPI: Decodable {
+    let subplanName: String
+    let segmentType: String
+    let weekStart: Int
+    let weekEnd: Int
+    let durationWeeks: Int
+    let startRatio: Double
+    let widthRatio: Double
+
+    enum CodingKeys: String, CodingKey {
+        case subplanName = "subplan_name"
+        case segmentType = "segment_type"
+        case weekStart = "week_start"
+        case weekEnd = "week_end"
+        case durationWeeks = "duration_weeks"
+        case startRatio = "start_ratio"
+        case widthRatio = "width_ratio"
+    }
+
+    /// Convertit en VisualBar iOS
+    func toVisualBar() -> VisualBar {
+        VisualBar(
+            id: UUID().uuidString,
+            subplanName: subplanName,
+            segmentType: segmentType,
+            weekStart: weekStart,
+            weekEnd: weekEnd,
+            durationWeeks: durationWeeks,
+            startRatio: startRatio,
+            widthRatio: widthRatio
+        )
+    }
+}
+
+// MARK: - API → iOS Conversion Extensions
+
+extension MacroPlanAPIResponse {
+    /// Convertit la réponse API en MacroPlanData iOS
+    func toMacroPlanData() -> MacroPlanData? {
+        guard let masterPlan = masterPlan else { return nil }
+
+        // Convertir les objectifs
+        let objectives: [RaceObjective] = masterPlan.objectives?.map { $0.toRaceObjective() } ?? []
+
+        // Convertir les visual bars depuis le summary
+        let visualBars: [VisualBar] = summary?.visualBars?.map { $0.toVisualBar() } ?? []
+
+        // Générer un nom de plan
+        let planName: String
+        if let mainObj = masterPlan.mainObjective {
+            planName = "Plan \(mainObj.name)"
+        } else if let firstObj = objectives.first {
+            planName = "Plan \(firstObj.name)"
+        } else {
+            planName = "Plan de saison"
+        }
+
+        // Description
+        let description = masterPlan.coordinatorRationale ?? "Plan généré automatiquement"
+
+        return MacroPlanData(
+            id: masterPlan.planId,
+            userId: "",  // Non disponible dans la réponse API
+            name: planName,
+            description: description,
+            startDate: masterPlan.seasonStart,
+            endDate: masterPlan.seasonEnd,
+            objectives: objectives,
+            weeks: nil,  // Non utilisé pour l'affichage du widget
+            visualBars: visualBars,
+            createdAt: masterPlan.createdAt
+        )
+    }
+}
+
+extension RaceObjectiveAPI {
+    /// Convertit un objectif API en RaceObjective iOS
+    func toRaceObjective() -> RaceObjective {
+        // Convertir la priorité
+        let iOSPriority: ObjectivePriority
+        switch priority.lowercased() {
+        case "principal", "a":
+            iOSPriority = .principal
+        default:
+            iOSPriority = .secondary
+        }
+
+        // Convertir le type d'objectif
+        let iOSObjectiveType: ObjectiveType
+        switch (objectiveType ?? "race").lowercased() {
+        case "focus":
+            iOSObjectiveType = .focus
+        default:
+            iOSObjectiveType = .race
+        }
+
+        // Convertir le sport
+        let iOSSport: MacroPlanSport
+        switch (sport ?? "triathlon").lowercased() {
+        case "running":
+            iOSSport = .courseAPied
+        case "cycling":
+            iOSSport = .cyclisme
+        case "swimming":
+            iOSSport = .natation
+        default:
+            iOSSport = .triathlon
+        }
+
+        // Convertir le format de course
+        var iOSRaceFormat: RaceFormat? = nil
+        if let format = raceFormat?.lowercased() {
+            switch format {
+            case "10k":
+                iOSRaceFormat = .tenK
+            case "sprint":
+                iOSRaceFormat = .sprint
+            case "olympic":
+                iOSRaceFormat = .olympic
+            case "70.3", "half_ironman":
+                iOSRaceFormat = .halfIronman
+            case "ironman":
+                iOSRaceFormat = .ironman
+            default:
+                iOSRaceFormat = .other
+            }
+        }
+
+        return RaceObjective(
+            id: UUID().uuidString,
+            name: name,
+            targetDate: targetDate ?? "",
+            priority: iOSPriority,
+            objectiveType: iOSObjectiveType,
+            sport: iOSSport,
+            raceFormat: iOSRaceFormat,
+            distanceValue: distanceValue,
+            distanceUnit: distanceUnit,
+            targetTime: targetTime,
+            location: location
+        )
+    }
+}
+
 /// Données du MacroPlan généré
 struct MacroPlanData: Decodable, Identifiable {
     let id: String

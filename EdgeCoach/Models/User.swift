@@ -36,7 +36,7 @@ struct User: Codable, Identifiable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id
+        case id = "_id"  // MongoDB utilise _id comme clé primaire
         case email
         case firstName = "first_name"
         case lastName = "last_name"
@@ -44,6 +44,51 @@ struct User: Codable, Identifiable {
         case profilePicture = "profile_picture"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+
+    // Support both "id" and "_id" from backend
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        // Essayer d'abord avec _id, sinon fallback sur id
+        if let mongoId = try? container.decode(String.self, forKey: .id) {
+            self.id = mongoId
+        } else {
+            // Fallback: essayer avec une clé "id" dynamique
+            let dynamicContainer = try decoder.container(keyedBy: DynamicCodingKey.self)
+            if let idKey = DynamicCodingKey(stringValue: "id"),
+               let plainId = try? dynamicContainer.decode(String.self, forKey: idKey) {
+                self.id = plainId
+            } else {
+                throw DecodingError.keyNotFound(CodingKeys.id,
+                    DecodingError.Context(codingPath: decoder.codingPath,
+                                         debugDescription: "Neither 'id' nor '_id' found"))
+            }
+        }
+
+        self.email = try container.decode(String.self, forKey: .email)
+        self.firstName = try container.decodeIfPresent(String.self, forKey: .firstName)
+        self.lastName = try container.decodeIfPresent(String.self, forKey: .lastName)
+        self.experienceLevel = try container.decodeIfPresent(ExperienceLevel.self, forKey: .experienceLevel)
+        self.profilePicture = try container.decodeIfPresent(String.self, forKey: .profilePicture)
+        self.createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
+        self.updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt)
+    }
+}
+
+// Helper pour le décodage dynamique
+struct DynamicCodingKey: CodingKey {
+    var stringValue: String
+    var intValue: Int?
+
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+        self.intValue = nil
+    }
+
+    init?(intValue: Int) {
+        self.intValue = intValue
+        self.stringValue = String(intValue)
     }
 }
 

@@ -127,7 +127,7 @@ struct ThemeModeRow: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 
@@ -167,7 +167,7 @@ struct AccentColorButton: View {
                     .foregroundColor(.secondary)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 
@@ -217,7 +217,7 @@ struct IconStyleRow: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 

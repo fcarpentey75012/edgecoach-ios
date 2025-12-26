@@ -222,7 +222,7 @@ struct AnalysisRow: View {
             }
             .padding(.vertical, 4)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 
@@ -364,7 +364,7 @@ struct IconButton: View {
                     .foregroundColor(isSelected ? .white : themeManager.textSecondary)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premium)
     }
 }
 

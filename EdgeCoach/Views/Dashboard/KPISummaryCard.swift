@@ -39,11 +39,12 @@ struct KPISummaryCard: View {
             // Grid des KPIs
             if let summary = summary, !selectedMetrics.isEmpty {
                 LazyVGrid(columns: columns, spacing: ECSpacing.sm) {
-                    ForEach(selectedMetrics) { metric in
+                    ForEach(Array(selectedMetrics.enumerated()), id: \.element.id) { index, metric in
                         KPIMetricItem(
                             metric: metric,
                             value: value(for: metric, summary: summary)
                         )
+                        .staggeredAnimation(index: index, totalCount: selectedMetrics.count)
                     }
                 }
                 .padding(ECSpacing.md)
