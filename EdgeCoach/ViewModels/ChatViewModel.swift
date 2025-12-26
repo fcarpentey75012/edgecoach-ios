@@ -49,15 +49,15 @@ class ChatViewModel: ObservableObject {
     @Published var isStreaming: Bool = false
     @Published var error: String?
 
-    @Published var selectedCoach: SelectedCoach = CoachService.availableCoaches[0]
-    @Published var availableCoaches: [SelectedCoach] = CoachService.availableCoaches
+    @Published var selectedCoach: SelectedCoach = CoachService.defaultCoach
     @Published var conversationId: String?
 
     // Conversations locales
     @Published var localConversations: [LocalConversation] = []
     @Published var currentConversationId: String?
     @Published var showingConversationList: Bool = false
-    @Published var showingCoachSelector: Bool = false
+    @Published var showingCoachingConfig: Bool = false
+    @Published var coachingConfig: CoachingConfig = CoachingConfigService.shared.config
 
     // Support média
     @Published var selectedImages: [UIImage] = []
@@ -88,9 +88,8 @@ class ChatViewModel: ObservableObject {
         guard !isInitialized else { return }
         isInitialized = true
 
-        // Charger le coach sélectionné depuis l'API ou le stockage local
+        // Charger le coach basé sur la configuration actuelle
         selectedCoach = await coachService.initialize(userId: userId)
-        availableCoaches = coachService.getAllCoaches()
 
         // Charger les conversations locales
         loadLocalConversations()
@@ -141,10 +140,8 @@ class ChatViewModel: ObservableObject {
         currentConversationId = conversation.id
         messages = conversation.messages
 
-        // Charger le coach associé
-        if let coach = availableCoaches.first(where: { $0.id == conversation.coachId }) {
-            selectedCoach = coach
-        }
+        // Utiliser le coach basé sur la config actuelle
+        selectedCoach = CoachService.defaultCoach
 
         showingConversationList = false
     }
@@ -290,9 +287,10 @@ class ChatViewModel: ObservableObject {
 
         // Créer une nouvelle conversation locale
         let newConversationId = UUID().uuidString
+        let config = CoachingConfigService.shared.config
         let welcomeMessage = ChatMessage(
             role: .assistant,
-            content: "Bonjour ! Je suis \(selectedCoach.name), votre coach \(selectedCoach.speciality). \(selectedCoach.description) Comment puis-je vous aider aujourd'hui ?"
+            content: "Bonjour ! Je suis votre coach \(config.sport.displayName). \(config.style.description) Comment puis-je vous aider aujourd'hui ?"
         )
 
         let newConversation = LocalConversation(
@@ -312,14 +310,18 @@ class ChatViewModel: ObservableObject {
 
     // MARK: - Change Coach
 
-    func selectCoach(_ coach: SelectedCoach, userId: String?) async {
-        selectedCoach = coach
-        showingCoachSelector = false
+    /// Met à jour la configuration du coaching
+    func updateCoachingConfig(_ newConfig: CoachingConfig, userId: String?) async {
+        coachingConfig = newConfig
+        CoachingConfigService.shared.updateConfig(newConfig)
 
-        // Synchroniser avec le backend
-        _ = await coachService.selectCoach(coach, userId: userId)
+        // Mettre à jour le coach basé sur la nouvelle config
+        selectedCoach = CoachService.coachFromConfig(newConfig)
+        coachService.updateFromConfig()
 
-        // Démarrer une nouvelle conversation avec le nouveau coach
+        showingCoachingConfig = false
+
+        // Démarrer une nouvelle conversation avec la nouvelle config
         startNewConversation()
     }
 

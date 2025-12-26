@@ -10,6 +10,7 @@ import SwiftUI
 /// Types de widgets disponibles sur le dashboard
 enum DashboardWidgetType: String, CaseIterable, Identifiable, Codable {
     case kpiSummary = "kpi_summary"
+    case pmcStatus = "pmc_status"
     case performance = "performance"
     case weekProgress = "week_progress"
     case sportsBreakdown = "sports_breakdown"
@@ -22,6 +23,7 @@ enum DashboardWidgetType: String, CaseIterable, Identifiable, Codable {
     var displayName: String {
         switch self {
         case .kpiSummary: return "Résumé"
+        case .pmcStatus: return "État de forme"
         case .performance: return "Performance"
         case .weekProgress: return "Progression semaine"
         case .sportsBreakdown: return "Par sport"
@@ -34,6 +36,7 @@ enum DashboardWidgetType: String, CaseIterable, Identifiable, Codable {
     var icon: String {
         switch self {
         case .kpiSummary: return "chart.bar.fill"
+        case .pmcStatus: return "waveform.path.ecg"
         case .performance: return "gauge.with.dots.needle.67percent"
         case .weekProgress: return "chart.line.uptrend.xyaxis"
         case .sportsBreakdown: return "figure.run.square.stack"
@@ -46,6 +49,7 @@ enum DashboardWidgetType: String, CaseIterable, Identifiable, Codable {
     var description: String {
         switch self {
         case .kpiSummary: return "Volume, distance, séances..."
+        case .pmcStatus: return "CTL, ATL, TSB, fatigue"
         case .performance: return "CS/D', CP/W', CSS"
         case .weekProgress: return "Objectif hebdomadaire"
         case .sportsBreakdown: return "Répartition par discipline"
@@ -67,7 +71,7 @@ enum DashboardWidgetType: String, CaseIterable, Identifiable, Codable {
 
     /// Widgets affichés par défaut
     static var defaultWidgets: [DashboardWidgetType] {
-        [.kpiSummary, .performance, .weekProgress, .sportsBreakdown, .plannedSessions, .recentActivities]
+        [.kpiSummary, .pmcStatus, .performance, .weekProgress, .sportsBreakdown, .plannedSessions, .recentActivities]
     }
 }
 

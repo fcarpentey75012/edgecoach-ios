@@ -8,11 +8,13 @@ import SwiftUI
 struct CalendarView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject var appState: AppState
     @StateObject private var viewModel = CalendarViewModel()
 
     // Navigation states
     @State private var selectedActivity: Activity?
     @State private var selectedPlannedSession: PlannedSession?
+    @State private var selectedCycleSession: CycleSession?
 
     // Debounce pour les changements de mois
     @State private var monthChangeTask: Task<Void, Never>?
@@ -20,39 +22,23 @@ struct CalendarView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Month Header
-                CalendarHeader(
-                    currentMonth: viewModel.currentMonth,
-                    onPreviousMonth: { viewModel.previousMonth() },
-                    onNextMonth: { viewModel.nextMonth() },
-                    onToday: { viewModel.goToToday() }
-                )
-
-                // Week Days Header
-                WeekDaysHeader()
-
-                // Calendar Grid
-                CalendarGrid(
-                    viewModel: viewModel,
-                    onDateSelected: { date in
-                        viewModel.selectDate(date)
+                // View Mode Picker (Mois / Semaine)
+                Picker("Mode", selection: $viewModel.viewMode) {
+                    ForEach(CalendarViewModel.CalendarViewMode.allCases, id: \.self) { mode in
+                        Text(mode.rawValue).tag(mode)
                     }
-                )
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, ECSpacing.md)
+                .padding(.vertical, ECSpacing.sm)
 
-                Divider()
-                    .background(themeManager.borderColor)
-                    .padding(.vertical, ECSpacing.sm)
-
-                // Selected Date Content
-                SelectedDateContent(
-                    viewModel: viewModel,
-                    onActivityTap: { activity in
-                        selectedActivity = activity
-                    },
-                    onPlannedSessionTap: { session in
-                        selectedPlannedSession = session
-                    }
-                )
+                if viewModel.viewMode == .month {
+                    // Vue Mois (existante)
+                    monthView
+                } else {
+                    // Vue Semaine (WeekPlanView)
+                    weekView
+                }
             }
             .background(themeManager.backgroundColor)
             .navigationTitle("Calendrier")
@@ -67,24 +53,132 @@ struct CalendarView: View {
                 PlannedSessionDetailView(session: session)
                     .environmentObject(themeManager)
             }
+            .sheet(item: $selectedCycleSession) { session in
+                CycleSessionDetailView(session: session)
+                    .environmentObject(themeManager)
+            }
         }
         .task {
-            // Chargement initial non-bloquant - la vue s'affiche immédiatement
+            // Chargement initial non-bloquant
             if let userId = authViewModel.user?.id {
                 await viewModel.loadData(userId: userId)
+                // Charger aussi le cycle pour la vue semaine
+                await viewModel.loadCyclePlan(userId: userId)
             }
         }
         .onChange(of: viewModel.currentDate) { newValue in
             // Debounce: annule la tâche précédente si l'utilisateur swipe rapidement
             monthChangeTask?.cancel()
             monthChangeTask = Task {
-                // Délai de 300ms pour éviter les appels multiples lors de swipes rapides
                 try? await Task.sleep(nanoseconds: 300_000_000)
                 guard !Task.isCancelled else { return }
                 if let userId = authViewModel.user?.id {
                     await viewModel.loadData(userId: userId)
                 }
             }
+        }
+        .onChange(of: viewModel.viewMode) { newMode in
+            // Recharger le cycle quand on passe en mode semaine
+            if newMode == .week, viewModel.cyclePlan == nil {
+                Task {
+                    if let userId = authViewModel.user?.id {
+                        await viewModel.loadCyclePlan(userId: userId)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Month View
+
+    @ViewBuilder
+    private var monthView: some View {
+        VStack(spacing: 0) {
+            // Month Header
+            CalendarHeader(
+                currentMonth: viewModel.currentMonth,
+                onPreviousMonth: { viewModel.previousMonth() },
+                onNextMonth: { viewModel.nextMonth() },
+                onToday: { viewModel.goToToday() }
+            )
+
+            // Week Days Header
+            WeekDaysHeader()
+
+            // Calendar Grid
+            CalendarGrid(
+                viewModel: viewModel,
+                onDateSelected: { date in
+                    viewModel.selectDate(date)
+                }
+            )
+
+            Divider()
+                .background(themeManager.borderColor)
+                .padding(.vertical, ECSpacing.sm)
+
+            // Selected Date Content
+            SelectedDateContent(
+                viewModel: viewModel,
+                onActivityTap: { activity in
+                    selectedActivity = activity
+                },
+                onPlannedSessionTap: { session in
+                    selectedPlannedSession = session
+                }
+            )
+        }
+    }
+
+    // MARK: - Week View
+
+    @ViewBuilder
+    private var weekView: some View {
+        if viewModel.cyclePlan != nil {
+            WeekPlanView(
+                viewModel: viewModel,
+                onSessionTap: { session in
+                    selectedCycleSession = session
+                }
+            )
+        } else if viewModel.isLoading {
+            VStack(spacing: ECSpacing.md) {
+                ProgressView()
+                Text("Chargement du cycle...")
+                    .font(.ecBody)
+                    .foregroundColor(themeManager.textSecondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            // Pas de cycle disponible
+            VStack(spacing: ECSpacing.lg) {
+                Image(systemName: "calendar.badge.exclamationmark")
+                    .font(.system(size: 60))
+                    .foregroundColor(themeManager.textTertiary)
+
+                Text("Aucun cycle actif")
+                    .font(.ecH4)
+                    .foregroundColor(themeManager.textPrimary)
+
+                Text("Crée un plan d'entraînement pour voir tes semaines planifiées")
+                    .font(.ecBody)
+                    .foregroundColor(themeManager.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, ECSpacing.xl)
+
+                Button {
+                    // TODO: Navigation vers création de plan
+                } label: {
+                    Text("Créer un plan")
+                        .font(.ecLabelBold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, ECSpacing.xl)
+                        .padding(.vertical, ECSpacing.md)
+                        .background(themeManager.accentColor)
+                        .cornerRadius(ECRadius.lg)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
@@ -356,10 +450,20 @@ struct CalendarSessionCard: View {
 
     var body: some View {
         HStack(spacing: ECSpacing.md) {
+            // Barre colorée sport
             Rectangle()
                 .fill(themeManager.sportColor(for: session.discipline))
                 .frame(width: 4)
                 .cornerRadius(2)
+
+            // Icône sport dans un cercle
+            ZStack {
+                Circle()
+                    .fill(themeManager.sportColor(for: session.discipline).opacity(0.15))
+                    .frame(width: 40, height: 40)
+
+                DisciplineIconView(discipline: session.discipline, size: 16, useCustomImage: true)
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(session.displayTitle)
@@ -378,6 +482,18 @@ struct CalendarSessionCard: View {
                         Label(distance, systemImage: "arrow.left.and.right")
                             .font(.ecCaption)
                             .foregroundColor(themeManager.textSecondary)
+                    }
+
+                    // Zone/Intensité (si disponible)
+                    if let intensity = session.intensity {
+                        Text(intensity)
+                            .font(.ecSmall)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(intensityColor(intensity))
+                            .cornerRadius(4)
                     }
                 }
             }
@@ -398,6 +514,17 @@ struct CalendarSessionCard: View {
         .shadow(color: themeManager.cardShadow, radius: 4, x: 0, y: 2)
         .padding(.horizontal, ECSpacing.md)
     }
+
+    private func intensityColor(_ intensity: String) -> Color {
+        switch intensity.uppercased() {
+        case "Z1": return .blue.opacity(0.7)
+        case "Z2": return .green
+        case "Z3": return .yellow.opacity(0.8)
+        case "Z4": return .orange
+        case "Z5": return .red
+        default: return themeManager.textSecondary
+        }
+    }
 }
 
 struct CalendarActivityCard: View {
@@ -406,14 +533,19 @@ struct CalendarActivityCard: View {
 
     var body: some View {
         HStack(spacing: ECSpacing.md) {
+            // Barre colorée sport (alignée avec CycleSessionCard)
+            Rectangle()
+                .fill(themeManager.sportColor(for: activity.discipline))
+                .frame(width: 4)
+                .cornerRadius(2)
+
+            // Icône sport dans un cercle
             ZStack {
                 Circle()
                     .fill(themeManager.sportColor(for: activity.discipline).opacity(0.15))
                     .frame(width: 40, height: 40)
 
-                Image(systemName: activity.discipline.icon)
-                    .font(.system(size: 16))
-                    .foregroundColor(themeManager.sportColor(for: activity.discipline))
+                DisciplineIconView(discipline: activity.discipline, size: 16, useCustomImage: true)
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -424,13 +556,13 @@ struct CalendarActivityCard: View {
 
                 HStack(spacing: ECSpacing.sm) {
                     if let duration = activity.formattedDuration {
-                        Text(duration)
+                        Label(duration, systemImage: "clock")
                             .font(.ecCaption)
                             .foregroundColor(themeManager.textSecondary)
                     }
 
                     if let distance = activity.formattedDistance {
-                        Text(distance)
+                        Label(distance, systemImage: "arrow.left.and.right")
                             .font(.ecCaption)
                             .foregroundColor(themeManager.textSecondary)
                     }
@@ -710,4 +842,5 @@ struct PlannedSessionStatItem: View {
     CalendarView()
         .environmentObject(AuthViewModel())
         .environmentObject(ThemeManager.shared)
+        .environmentObject(AppState())
 }

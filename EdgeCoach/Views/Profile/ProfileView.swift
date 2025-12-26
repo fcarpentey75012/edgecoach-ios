@@ -351,7 +351,7 @@ struct EditProfileView: View {
     @State private var firstName: String = ""
     @State private var lastName: String = ""
     @State private var email: String = ""
-    @State private var experienceLevel: ExperienceLevel = .intermediaire
+    @State private var experienceLevel: ExperienceLevel = .amateur
 
     var body: some View {
         NavigationStack {
@@ -395,7 +395,7 @@ struct EditProfileView: View {
             firstName = authViewModel.user?.firstName ?? ""
             lastName = authViewModel.user?.lastName ?? ""
             email = authViewModel.user?.email ?? ""
-            experienceLevel = authViewModel.user?.experienceLevel ?? .intermediaire
+            experienceLevel = authViewModel.user?.experienceLevel ?? .amateur
         }
     }
 }

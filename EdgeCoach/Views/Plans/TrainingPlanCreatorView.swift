@@ -9,7 +9,7 @@ import SwiftUI
 
 struct PlanFormData {
     var sport: PlanSport = .triathlon
-    var experience: ExperienceLevel = .intermediaire
+    var experience: ExperienceLevel = .amateur
     // Nouveau système d'objectifs structurés
     // TODO: Supprimer devExamples après le développement
     var trainingObjectives: [TrainingObjective] = TrainingObjective.devExamples
@@ -108,10 +108,10 @@ extension ExperienceLevel: Identifiable {
 
     var planDescription: String {
         switch self {
-        case .debutant: return "Moins de 1 an de pratique"
-        case .intermediaire: return "1 à 3 ans de pratique"
-        case .avance: return "3 à 5 ans de pratique"
-        case .expert: return "Plus de 5 ans de pratique"
+        case .discovery: return "Moins de 1 an de pratique"
+        case .amateur: return "1 à 3 ans de pratique régulière"
+        case .competitor: return "Plus de 3 ans, compétitions régulières"
+        case .expert: return "Plus de 5 ans, haut niveau"
         }
     }
 }

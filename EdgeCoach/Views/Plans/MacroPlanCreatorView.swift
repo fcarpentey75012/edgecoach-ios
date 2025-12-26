@@ -1300,7 +1300,7 @@ class MacroPlanCreatorViewModel: ObservableObject {
     
     // Form Data
     @Published var selectedSport: MacroPlanSport = .triathlon
-    @Published var selectedLevel: AthleteLevel = .advanced
+    @Published var selectedLevel: AthleteLevel = .competitor
     @Published var objectives: [RaceObjective] = [
         RaceObjective(
             name: "10k Paris",

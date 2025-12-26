@@ -155,84 +155,26 @@ class CoachService {
 
     private init() {}
 
-    // MARK: - Available Coaches (alignés avec le backend)
+    // MARK: - Coach from Config (système modulaire sans coachs nommés)
 
-    static let availableCoaches: [SelectedCoach] = [
-        // TRIATHLON (3 coachs)
+    /// Génère un coach virtuel basé sur la configuration (Sport + Level + Style)
+    static func coachFromConfig(_ config: CoachingConfig) -> SelectedCoach {
         SelectedCoach(
-            id: "jan_tri",
-            name: "Jan",
-            sport: "triathlon",
-            speciality: "Triathlon",
-            description: "Expert en triathlon avec 10 ans d'expérience en coaching de haut niveau",
-            avatar: "JT",
-            experience: "10+ ans",
-            expertise: ["Transition", "Endurance", "Stratégie de course"]
-        ),
-        SelectedCoach(
-            id: "marie_tri",
-            name: "Marie",
-            sport: "triathlon",
-            speciality: "Triathlon",
-            description: "Spécialiste en Ironman et ultra-endurance avec focus sur la nutrition sportive",
-            avatar: "MT",
-            experience: "8+ ans",
-            expertise: ["Ironman", "Ultra-endurance", "Nutrition"]
-        ),
-        SelectedCoach(
-            id: "thomas_tri",
-            name: "Thomas",
-            sport: "triathlon",
-            speciality: "Triathlon",
-            description: "Coach triathlon sprint et olympique spécialisé dans la vitesse et la performance",
-            avatar: "TT",
-            experience: "6+ ans",
-            expertise: ["Sprint", "Olympique", "Vitesse"]
-        ),
-        // COURSE À PIED (2 coachs)
-        SelectedCoach(
-            id: "eliud_run",
-            name: "Eliud",
-            sport: "course à pied",
-            speciality: "Course à pied",
-            description: "Champion olympique de course à pied et détenteur du record du monde du marathon",
-            avatar: "EK",
-            experience: "15+ ans",
-            expertise: ["Marathon", "Performance", "Mental"]
-        ),
-        SelectedCoach(
-            id: "sophie_run",
-            name: "Sophie",
-            sport: "course à pied",
-            speciality: "Course à pied",
-            description: "Spécialiste en trail et course nature avec expertise en ultra-endurance",
-            avatar: "SD",
-            experience: "7+ ans",
-            expertise: ["Trail", "Ultra-trail", "Course nature"]
-        ),
-        // NATATION (1 coach)
-        SelectedCoach(
-            id: "leon_swim",
-            name: "Léon",
-            sport: "natation",
-            speciality: "Natation",
-            description: "Expert en natation et technique de nage avec spécialisation eau libre",
-            avatar: "LM",
-            experience: "12+ ans",
-            expertise: ["Technique", "Eau libre", "Perfectionnement"]
-        ),
-        // CYCLISME (1 coach)
-        SelectedCoach(
-            id: "remco_bike",
-            name: "Remco",
-            sport: "cyclisme",
-            speciality: "Cyclisme",
-            description: "Champion du monde de cyclisme, expert en contre-la-montre et courses par étapes",
-            avatar: "RE",
-            experience: "5+ ans",
-            expertise: ["Contre-la-montre", "Montagne", "Performance"]
+            id: "\(config.sport.rawValue)_\(config.style.rawValue)",
+            name: "Coach",  // Pas de nom personnalisé
+            sport: config.sport.rawValue,
+            speciality: config.sport.displayName,
+            description: config.style.description,
+            avatar: config.sport.icon,
+            experience: nil,
+            expertise: nil
         )
-    ]
+    }
+
+    /// Coach par défaut basé sur la configuration actuelle
+    static var defaultCoach: SelectedCoach {
+        coachFromConfig(CoachingConfigService.shared.config)
+    }
 
     // MARK: - Initialize
 
@@ -254,8 +196,8 @@ class CoachService {
             return coach
         }
 
-        // Par défaut, retourne Jan (Triathlon)
-        let defaultCoach = Self.availableCoaches[0]
+        // Par défaut, retourne le coach basé sur la config
+        let defaultCoach = Self.defaultCoach
         currentCoach = defaultCoach
         return defaultCoach
     }
@@ -287,29 +229,22 @@ class CoachService {
 
     func getCurrentCoach() -> SelectedCoach {
         if currentCoach == nil {
-            currentCoach = Self.availableCoaches[0]
+            currentCoach = Self.defaultCoach
         }
         return currentCoach!
     }
 
-    func getCoachById(_ coachId: String) -> SelectedCoach? {
-        return Self.availableCoaches.first { $0.id == coachId }
+    /// Retourne le coach actuel basé sur la configuration
+    func getCoachFromCurrentConfig() -> SelectedCoach {
+        return Self.coachFromConfig(CoachingConfigService.shared.config)
     }
 
-    func getCoachBySport(_ sport: Discipline) -> SelectedCoach {
-        let sportName: String
-        switch sport {
-        case .cyclisme: sportName = "cyclisme"
-        case .course: sportName = "course à pied"
-        case .natation: sportName = "natation"
-        case .autre: sportName = "triathlon"
-        }
-
-        return Self.availableCoaches.first { $0.sport.lowercased() == sportName.lowercased() } ?? Self.availableCoaches[0]
-    }
-
-    func getAllCoaches() -> [SelectedCoach] {
-        return Self.availableCoaches
+    /// Met à jour le coach quand la configuration change
+    func updateFromConfig() {
+        let newCoach = Self.defaultCoach
+        currentCoach = newCoach
+        saveLocally(coach: newCoach)
+        notifyListeners(newCoach)
     }
 
     // MARK: - Select Coach

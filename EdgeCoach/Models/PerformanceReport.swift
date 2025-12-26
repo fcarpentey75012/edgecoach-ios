@@ -9,8 +9,8 @@ import Foundation
 // MARK: - Performance Report (Root)
 
 struct PerformanceReport: Codable {
-    let id: String
-    let user: PerformanceReportUser
+    let id: String?
+    let user: PerformanceReportUser?
     let date: String
     let metrics: PerformanceMetrics
     let meta: PerformanceMeta?

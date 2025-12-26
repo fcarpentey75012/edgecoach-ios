@@ -24,7 +24,7 @@ class AuthViewModel: ObservableObject {
     #endif
     @Published var firstName: String = ""
     @Published var lastName: String = ""
-    @Published var experienceLevel: ExperienceLevel = .intermediaire
+    @Published var experienceLevel: ExperienceLevel = .amateur
     @Published var isSubmitting: Bool = false
 
     // MARK: - Services

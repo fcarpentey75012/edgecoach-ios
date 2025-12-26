@@ -49,18 +49,46 @@ struct User: Codable, Identifiable {
 
 // MARK: - Experience Level
 
+/// Niveau d'expérience de l'utilisateur (aligné avec backend: discovery, amateur, competitor, expert)
 enum ExperienceLevel: String, Codable, CaseIterable {
-    case debutant = "debutant"
-    case intermediaire = "intermediaire"
-    case avance = "avance"
+    case discovery = "discovery"
+    case amateur = "amateur"
+    case competitor = "competitor"
     case expert = "expert"
 
     var displayName: String {
         switch self {
-        case .debutant: return "Débutant"
-        case .intermediaire: return "Intermédiaire"
-        case .avance: return "Avancé"
+        case .discovery: return "Découverte"
+        case .amateur: return "Amateur"
+        case .competitor: return "Compétiteur"
         case .expert: return "Expert"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .discovery: return "Je débute, je veux apprendre et prendre du plaisir"
+        case .amateur: return "Je m'entraîne régulièrement et je veux progresser"
+        case .competitor: return "Je vise la performance et je connais les fondamentaux"
+        case .expert: return "Je maîtrise l'entraînement et je vise l'excellence"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .discovery: return "leaf.fill"
+        case .amateur: return "star.fill"
+        case .competitor: return "trophy.fill"
+        case .expert: return "crown.fill"
+        }
+    }
+
+    var emoji: String {
+        switch self {
+        case .discovery: return "🌱"
+        case .amateur: return "⭐"
+        case .competitor: return "🏆"
+        case .expert: return "👑"
         }
     }
 }

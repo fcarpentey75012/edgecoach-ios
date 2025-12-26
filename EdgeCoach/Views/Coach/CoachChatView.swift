@@ -45,7 +45,7 @@ struct CoachChatContentView: View {
             // Coach Header
             CoachHeader(
                 coach: viewModel.selectedCoach,
-                onTap: { viewModel.showingCoachSelector = true }
+                onTap: { viewModel.showingCoachingConfig = true }
             )
 
             Divider()
@@ -102,17 +102,15 @@ struct CoachChatContentView: View {
             leading: sidebarButton,
             trailing: toolbarMenuButton
         )
-        .sheet(isPresented: $viewModel.showingCoachSelector) {
-            CoachSelectorSheet(
-                coaches: viewModel.availableCoaches,
-                selectedCoach: viewModel.selectedCoach,
-                onSelect: { coach in
+        .sheet(isPresented: $viewModel.showingCoachingConfig) {
+            CoachingConfigSheet(
+                config: $viewModel.coachingConfig,
+                onSave: { newConfig in
                     Task {
-                        await viewModel.selectCoach(coach, userId: authViewModel.user?.id)
+                        await viewModel.updateCoachingConfig(newConfig, userId: authViewModel.user?.id)
                     }
                 }
             )
-            .environmentObject(themeManager)
             .presentationDetents([.medium, .large])
         }
         .alert("Erreur", isPresented: .constant(viewModel.error != nil)) {
@@ -164,9 +162,9 @@ struct CoachChatContentView: View {
 
             Menu {
                 Button {
-                    viewModel.showingCoachSelector = true
+                    viewModel.showingCoachingConfig = true
                 } label: {
-                    Label("Changer de coach", systemImage: "person.2")
+                    Label("Configuration coach", systemImage: "gearshape")
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
@@ -390,12 +388,13 @@ struct ConversationsSidebar: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(selectedCoach.name)
+                    Text("Coach \(selectedCoach.speciality)")
                         .font(.ecLabelBold)
                         .foregroundColor(themeManager.textPrimary)
-                    Text(selectedCoach.speciality)
+                    Text(selectedCoach.description)
                         .font(.ecSmall)
                         .foregroundColor(themeManager.textSecondary)
+                        .lineLimit(1)
                 }
 
                 Spacer()
@@ -502,7 +501,7 @@ struct CoachHeader: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: ECSpacing.xs) {
-                        Text(coach.name)
+                        Text("Coach \(coach.speciality)")
                             .font(.ecLabelBold)
                             .foregroundColor(themeManager.textPrimary)
 
@@ -511,9 +510,10 @@ struct CoachHeader: View {
                             .foregroundColor(themeManager.textTertiary)
                     }
 
-                    Text(coach.speciality)
+                    Text(coach.description)
                         .font(.ecCaption)
                         .foregroundColor(themeManager.textSecondary)
+                        .lineLimit(1)
                 }
 
                 Spacer()

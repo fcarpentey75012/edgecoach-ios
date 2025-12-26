@@ -175,7 +175,7 @@ extension MacroPlanService {
 class MacroPlanRequestBuilder {
     private var userId: String = ""
     private var sport: MacroPlanSport = .triathlon
-    private var level: AthleteLevel = .intermediate
+    private var level: AthleteLevel = .amateur
     private var startDate: Date = Date()
     private var weeklyTimeHours: Int = 12  // en heures
     private var perSportSessions: PerSportSessions?

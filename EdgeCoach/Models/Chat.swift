@@ -110,44 +110,30 @@ struct Coach: Identifiable {
     }
 }
 
-// Static coaches data
+// Coach généré dynamiquement depuis CoachingConfig (pas de coachs nommés)
 extension Coach {
-    static let coaches: [Coach] = [
-        Coach(
-            id: "coach_velo",
-            name: "Marc",
-            sport: .cyclisme,
-            specialty: "Cyclisme & Performance",
-            avatar: "figure.outdoor.cycle",
-            bio: "Expert en cyclisme avec 15 ans d'expérience dans l'entraînement de cyclistes amateurs et professionnels. Spécialisé dans l'optimisation de la puissance et l'analyse des données."
-        ),
-        Coach(
-            id: "coach_course",
-            name: "Sophie",
-            sport: .course,
-            specialty: "Course à pied",
-            avatar: "figure.run",
-            bio: "Ancienne athlète de haut niveau, spécialisée dans le marathon et le trail. J'aide les coureurs à améliorer leur technique et à atteindre leurs objectifs."
-        ),
-        Coach(
-            id: "coach_natation",
-            name: "Thomas",
-            sport: .natation,
-            specialty: "Natation",
-            avatar: "figure.pool.swim",
-            bio: "Coach de natation certifié, ancien nageur de compétition. Expert en technique de nage et préparation physique aquatique."
-        ),
-        Coach(
-            id: "coach_tri",
-            name: "Julie",
-            sport: .autre,
-            specialty: "Triathlon",
-            avatar: "figure.strengthtraining.functional",
-            bio: "Triathlète Ironman et coach certifiée. Je vous accompagne dans la préparation de vos défis multi-disciplines."
-        )
-    ]
+    /// Crée un coach basé sur la configuration actuelle
+    static func fromConfig(_ config: CoachingConfig) -> Coach {
+        let discipline: Discipline
+        switch config.sport {
+        case .triathlon: discipline = .autre
+        case .running: discipline = .course
+        case .cycling: discipline = .cyclisme
+        case .swimming: discipline = .natation
+        }
 
-    static func coach(for sport: Discipline) -> Coach {
-        coaches.first { $0.sport == sport } ?? coaches[0]
+        return Coach(
+            id: "\(config.sport.rawValue)_\(config.style.rawValue)",
+            name: "Coach",
+            sport: discipline,
+            specialty: config.sport.displayName,
+            avatar: config.sport.icon,
+            bio: config.style.description
+        )
+    }
+
+    /// Coach par défaut basé sur la configuration actuelle
+    static var current: Coach {
+        fromConfig(CoachingConfigService.shared.config)
     }
 }

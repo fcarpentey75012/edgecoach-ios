@@ -19,6 +19,7 @@ struct DashboardView: View {
 
     // Widget config sheet states
     @State private var showingKPIConfig = false
+    @State private var showingPMCDetail = false
     @State private var showingPerformanceConfig = false
     @State private var showingWeekProgressConfig = false
     @State private var showingSportsBreakdownConfig = false
@@ -97,6 +98,12 @@ struct DashboardView: View {
                     .environmentObject(authViewModel)
                     .environmentObject(themeManager)
             }
+            .sheet(isPresented: $showingPMCDetail) {
+                if let pmcStatus = viewModel.pmcStatus, let userId = authViewModel.user?.id {
+                    PMCDetailView(pmcStatus: pmcStatus, userId: userId)
+                        .environmentObject(themeManager)
+                }
+            }
             // Sheets de configuration des widgets
             .sheet(isPresented: $showingKPIConfig) {
                 KPISummaryConfigSheet(config: $viewModel.widgetPreferences.kpiConfig)
@@ -141,6 +148,10 @@ struct DashboardView: View {
         switch type {
         case .kpiSummary:
             kpiSummaryWidget
+                .padding(.horizontal)
+
+        case .pmcStatus:
+            pmcStatusWidget
                 .padding(.horizontal)
 
         case .performance:
@@ -189,6 +200,14 @@ struct DashboardView: View {
                 summary: viewModel.summary
             )
         }
+    }
+
+    private var pmcStatusWidget: some View {
+        PMCStatusWidget(
+            pmcStatus: viewModel.pmcStatus,
+            isLoading: viewModel.isPMCLoading,
+            onTap: { showingPMCDetail = true }
+        )
     }
 
     private var performanceWidget: some View {

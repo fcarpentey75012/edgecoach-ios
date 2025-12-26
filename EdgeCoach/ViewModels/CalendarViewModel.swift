@@ -32,6 +32,7 @@ class CalendarViewModel: ObservableObject {
 
     private let activitiesService = ActivitiesService.shared
     private let plansService = PlansService.shared
+    private let cycleService = CycleService.shared
 
     // MARK: - Static DateFormatters (évite création répétée)
     private static let monthYearFormatter: DateFormatter = {
@@ -299,5 +300,217 @@ class CalendarViewModel: ObservableObject {
 
     var plannedSessionsForSelectedDate: [PlannedSession] {
         selectedDatePlannedSessions
+    }
+
+    // MARK: - Cycle Plan Support (for WeekPlanView)
+
+    @Published var cyclePlan: CyclePlanData?
+    @Published var moveState: SessionMoveState = SessionMoveState()
+    @Published var showMoveResult: Bool = false
+    @Published var showMoveConfirmation: Bool = false
+    @Published var lastMoveWarnings: [MoveWarning] = []
+
+    /// Index de la semaine sélectionnée (0-based)
+    var selectedWeekIndex: Int {
+        guard let plan = cyclePlan, !plan.weeks.isEmpty else { return 0 }
+        // Trouver la semaine contenant la date sélectionnée
+        for (index, week) in plan.weeks.enumerated() {
+            for session in week.sessions {
+                if let sessionDate = session.dateValue,
+                   Calendar.current.isDate(sessionDate, inSameDayAs: selectedDate) {
+                    return index
+                }
+            }
+        }
+        // Par défaut, retourner la semaine courante basée sur la date
+        return currentWeekIndexFromDate()
+    }
+
+    /// Semaine courante du cycle
+    var currentWeek: CycleWeek? {
+        guard let plan = cyclePlan, selectedWeekIndex < plan.weeks.count else { return nil }
+        return plan.weeks[selectedWeekIndex]
+    }
+
+    /// Jours de la semaine courante (Lundi à Dimanche)
+    var daysInCurrentWeek: [Date] {
+        let calendar = Calendar.current
+        // Obtenir le lundi de la semaine de la date sélectionnée
+        let weekday = calendar.component(.weekday, from: selectedDate)
+        // weekday: 1 = dimanche, 2 = lundi, ..., 7 = samedi
+        let daysFromMonday = (weekday + 5) % 7 // Convertir pour que lundi = 0
+        guard let monday = calendar.date(byAdding: .day, value: -daysFromMonday, to: selectedDate) else {
+            return []
+        }
+
+        return (0..<7).compactMap { offset in
+            calendar.date(byAdding: .day, value: offset, to: monday)
+        }
+    }
+
+    /// Mode déplacement actif
+    var isInMoveMode: Bool {
+        moveState.isMoving
+    }
+
+    /// Sessions du cycle pour la date sélectionnée
+    var selectedDateCycleSessions: [CycleSession] {
+        cycleSessionsForDate(selectedDate)
+    }
+
+    // MARK: - Cycle Methods
+
+    /// Sélectionner la semaine courante (aujourd'hui)
+    func selectCurrentWeek() {
+        selectedDate = Date()
+    }
+
+    /// Sessions du cycle pour une date donnée
+    func cycleSessionsForDate(_ date: Date) -> [CycleSession] {
+        guard let plan = cyclePlan else { return [] }
+        return plan.sessions(for: date)
+    }
+
+    /// Vérifie si une date est une cible valide pour le déplacement
+    func isValidMoveTarget(date: Date) -> Bool {
+        guard let plan = cyclePlan,
+              let sourceDate = moveState.sourceDate else { return false }
+
+        // Vérifier que la date est dans la plage du cycle
+        guard let range = plan.dateRange else { return false }
+        let calendar = Calendar.current
+
+        // La date doit être dans le cycle
+        guard date >= range.start && date <= range.end else { return false }
+
+        // La date ne peut pas être la même que la source
+        return !calendar.isDate(date, inSameDayAs: sourceDate)
+    }
+
+    /// Définir la date cible pour le déplacement
+    func setMoveTarget(date: Date) {
+        moveState.setTarget(date: date)
+    }
+
+    /// Préparer la confirmation de déplacement
+    func prepareMoveConfirmation() {
+        guard moveState.sourceDate != nil && moveState.targetDate != nil else { return }
+        showMoveConfirmation = true
+    }
+
+    /// Annuler le déplacement en cours
+    func cancelSessionMove() {
+        moveState.reset()
+        showMoveConfirmation = false
+    }
+
+    /// Démarrer le déplacement d'une session
+    func startSessionMove(session: CycleSession, from date: Date) {
+        moveState.startMove(session: session, from: date)
+    }
+
+    /// Fermer le résultat du déplacement
+    func dismissMoveResult() {
+        showMoveResult = false
+        lastMoveWarnings = []
+    }
+
+    /// Exécuter le déplacement de la session
+    func executeSessionMove(userId: String) async {
+        guard let sourceDate = moveState.sourceDate,
+              let targetDate = moveState.targetDate,
+              let plan = cyclePlan else {
+            moveState.error = "Données manquantes pour le déplacement"
+            return
+        }
+
+        moveState.isLoading = true
+        moveState.error = nil
+
+        // TODO: Implémenter l'appel API réel pour déplacer la session
+        // Pour l'instant, simulation d'un délai
+        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
+
+        // Simuler un succès
+        moveState.isLoading = false
+        lastMoveWarnings = moveState.previewWarnings
+        showMoveResult = true
+        showMoveConfirmation = false
+        moveState.reset()
+
+        // Recharger les données du cycle
+        await loadCyclePlan(userId: userId)
+    }
+
+    // MARK: - Private Helpers
+
+    private func currentWeekIndexFromDate() -> Int {
+        guard let plan = cyclePlan, let range = plan.dateRange else { return 0 }
+        let calendar = Calendar.current
+
+        // Calculer le nombre de semaines depuis le début du cycle
+        let components = calendar.dateComponents([.weekOfYear], from: range.start, to: selectedDate)
+        let weekOffset = components.weekOfYear ?? 0
+
+        return min(max(0, weekOffset), plan.weeks.count - 1)
+    }
+
+    // MARK: - Load Cycle Plan
+
+    func loadCyclePlan(userId: String) async {
+        do {
+            cyclePlan = try await cycleService.getLatestCycle(userId: userId)
+
+            #if DEBUG
+            if let plan = cyclePlan {
+                print("✅ CyclePlan loaded: \(plan.cycleName) - \(plan.weeks.count) weeks")
+            } else {
+                print("ℹ️ No cycle plan available")
+            }
+            #endif
+        } catch {
+            #if DEBUG
+            print("❌ Failed to load cycle plan: \(error)")
+            #endif
+            cyclePlan = nil
+        }
+    }
+
+    // MARK: - Execute Session Move (Real API)
+
+    func executeSessionMoveAPI(userId: String) async {
+        guard let sourceDate = moveState.sourceDate,
+              let targetDate = moveState.targetDate,
+              let plan = cyclePlan else {
+            moveState.error = "Données manquantes pour le déplacement"
+            return
+        }
+
+        moveState.isLoading = true
+        moveState.error = nil
+
+        do {
+            let response = try await cycleService.moveSession(
+                cycleTag: plan.cycleTag,
+                sourceDate: sourceDate,
+                targetDate: targetDate
+            )
+
+            if response.success {
+                lastMoveWarnings = response.warnings
+                showMoveResult = true
+                showMoveConfirmation = false
+                moveState.reset()
+
+                // Recharger les données du cycle
+                await loadCyclePlan(userId: userId)
+            } else {
+                moveState.error = response.errorMessage ?? "Échec du déplacement"
+            }
+        } catch {
+            moveState.error = "Erreur: \(error.localizedDescription)"
+        }
+
+        moveState.isLoading = false
     }
 }

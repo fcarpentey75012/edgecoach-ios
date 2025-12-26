@@ -41,7 +41,7 @@ struct AthleteProfile: Codable {
     static var `default`: AthleteProfile {
         AthleteProfile(
             sport: .triathlon,
-            level: .intermediate,
+            level: .amateur,
             planConfig: .default,
             softConstraints: .default
         )
@@ -80,30 +80,43 @@ enum MacroPlanSport: String, Codable, CaseIterable, Identifiable {
 
 // MARK: - Athlete Level
 
-/// Niveau de l'athlète
+/// Niveau de l'athlète (aligné avec backend: discovery, amateur, competitor)
 enum AthleteLevel: String, Codable, CaseIterable, Identifiable {
-    case beginner
-    case intermediate
-    case advanced
-    case expert
+    case discovery = "discovery"
+    case amateur = "amateur"
+    case competitor = "competitor"
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .beginner: return "Débutant"
-        case .intermediate: return "Intermédiaire"
-        case .advanced: return "Avancé"
-        case .expert: return "Expert"
+        case .discovery: return "Découverte"
+        case .amateur: return "Amateur"
+        case .competitor: return "Compétiteur"
         }
     }
 
     var description: String {
         switch self {
-        case .beginner: return "Nouveau dans le sport, moins d'1 an de pratique"
-        case .intermediate: return "1-3 ans de pratique régulière"
-        case .advanced: return "Plus de 3 ans, compétitions régulières"
-        case .expert: return "Athlète confirmé, haut niveau"
+        case .discovery: return "Je débute, je veux apprendre et prendre du plaisir"
+        case .amateur: return "Je m'entraîne régulièrement et je veux progresser"
+        case .competitor: return "Je vise la performance et je connais les fondamentaux"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .discovery: return "leaf.fill"
+        case .amateur: return "star.fill"
+        case .competitor: return "trophy.fill"
+        }
+    }
+
+    var emoji: String {
+        switch self {
+        case .discovery: return "🌱"
+        case .amateur: return "⭐"
+        case .competitor: return "🏆"
         }
     }
 }

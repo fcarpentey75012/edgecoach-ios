@@ -13,7 +13,6 @@
 		E10000000000000000000004 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000004 /* Typography.swift */; };
 		E10000000000000000000005 /* Spacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000005 /* Spacing.swift */; };
 		E10000000000000000000006 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000006 /* User.swift */; };
-		E10000000000000000000007 /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000007 /* Activity.swift */; };
 		E10000000000000000000008 /* PlannedSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000008 /* PlannedSession.swift */; };
 		E10000000000000000000009 /* Dashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000009 /* Dashboard.swift */; };
 		E10000000000000000000010 /* Chat.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000010 /* Chat.swift */; };
@@ -24,7 +23,6 @@
 		E10000000000000000000015 /* PlansService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000015 /* PlansService.swift */; };
 		E10000000000000000000016 /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000016 /* ChatService.swift */; };
 		E10000000000000000000017 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000017 /* AuthViewModel.swift */; };
-		E10000000000000000000018 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000018 /* DashboardViewModel.swift */; };
 		E10000000000000000000019 /* CalendarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000019 /* CalendarViewModel.swift */; };
 		E10000000000000000000020 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000020 /* ChatViewModel.swift */; };
 		E10000000000000000000021 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000021 /* MainTabView.swift */; };
@@ -82,6 +80,45 @@
 		E10000000000000000000120 /* TrainingObjective.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000120 /* TrainingObjective.swift */; };
 		E10000000000000000000121 /* ObjectiveEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000121 /* ObjectiveEditorView.swift */; };
 		E10000000000000000000122 /* ObjectivesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000122 /* ObjectivesListView.swift */; };
+		E10000000000000000000200 /* Image+AppIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000200 /* Image+AppIcon.swift */; };
+		E10000000000000000000201 /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000201 /* Activity.swift */; };
+		E10000000000000000000202 /* ActivityData.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000202 /* ActivityData.swift */; };
+		E10000000000000000000203 /* ActivityLight.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000203 /* ActivityLight.swift */; };
+		E10000000000000000000204 /* Activity+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000204 /* Activity+Extensions.swift */; };
+		E10000000000000000000205 /* Discipline.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000205 /* Discipline.swift */; };
+		E10000000000000000000210 /* CoachingConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000210 /* CoachingConfig.swift */; };
+		E10000000000000000000211 /* CyclePlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000211 /* CyclePlan.swift */; };
+		E10000000000000000000212 /* IntervalAnnotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000212 /* IntervalAnnotation.swift */; };
+		E10000000000000000000213 /* PMCStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000213 /* PMCStatus.swift */; };
+		E10000000000000000000214 /* SessionMoveModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000214 /* SessionMoveModels.swift */; };
+		E10000000000000000000220 /* CalendarSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000220 /* CalendarSyncService.swift */; };
+		E10000000000000000000221 /* ChartTagParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000221 /* ChartTagParser.swift */; };
+		E10000000000000000000222 /* CoachingConfigService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000222 /* CoachingConfigService.swift */; };
+		E10000000000000000000223 /* ComplianceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000223 /* ComplianceService.swift */; };
+		E10000000000000000000224 /* PMCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000224 /* PMCService.swift */; };
+		E10000000000000000000300 /* CycleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000300 /* CycleService.swift */; };
+		E10000000000000000000230 /* Styles.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000230 /* Styles.swift */; };
+		E10000000000000000000231 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000231 /* HapticManager.swift */; };
+		E10000000000000000000240 /* ComplianceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000240 /* ComplianceViewModel.swift */; };
+		E10000000000000000000241 /* DashboardViewModel+Computed.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000241 /* DashboardViewModel+Computed.swift */; };
+		E10000000000000000000242 /* DashboardViewModel+Loading.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000242 /* DashboardViewModel+Loading.swift */; };
+		E10000000000000000000243 /* DashboardViewModel+Widgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000243 /* DashboardViewModel+Widgets.swift */; };
+		E10000000000000000000244 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000244 /* DashboardViewModel.swift */; };
+		E10000000000000000000250 /* WeekPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000250 /* WeekPlanView.swift */; };
+		E10000000000000000000251 /* CoachingConfigSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000251 /* CoachingConfigSheet.swift */; };
+		E10000000000000000000252 /* EnrichedMessageBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000252 /* EnrichedMessageBubble.swift */; };
+		E10000000000000000000253 /* ComplianceBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000253 /* ComplianceBanner.swift */; };
+		E10000000000000000000254 /* ProposalValidationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000254 /* ProposalValidationSheet.swift */; };
+		E10000000000000000000260 /* PremiumAnimations.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000260 /* PremiumAnimations.swift */; };
+		E10000000000000000000261 /* SkeletonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000261 /* SkeletonView.swift */; };
+		E10000000000000000000262 /* VegaChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000262 /* VegaChartView.swift */; };
+		E10000000000000000000263 /* SessionBriefingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000263 /* SessionBriefingView.swift */; };
+		E10000000000000000000264 /* StoryContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000264 /* StoryContainerView.swift */; };
+		E10000000000000000000270 /* DashboardSkeletons.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000270 /* DashboardSkeletons.swift */; };
+		E10000000000000000000271 /* PMCDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000271 /* PMCDetailView.swift */; };
+		E10000000000000000000272 /* PMCStatusWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000272 /* PMCStatusWidget.swift */; };
+		E10000000000000000000280 /* CoachingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000280 /* CoachingSettingsView.swift */; };
+		E10000000000000000000281 /* IntervalAnnotationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000281 /* IntervalAnnotationSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -102,7 +139,6 @@
 		E20000000000000000000004 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		E20000000000000000000005 /* Spacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spacing.swift; sourceTree = "<group>"; };
 		E20000000000000000000006 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
-		E20000000000000000000007 /* Activity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Activity.swift; sourceTree = "<group>"; };
 		E20000000000000000000008 /* PlannedSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannedSession.swift; sourceTree = "<group>"; };
 		E20000000000000000000009 /* Dashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dashboard.swift; sourceTree = "<group>"; };
 		E20000000000000000000010 /* Chat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chat.swift; sourceTree = "<group>"; };
@@ -114,7 +150,6 @@
 		E20000000000000000000015 /* PlansService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlansService.swift; sourceTree = "<group>"; };
 		E20000000000000000000016 /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatService.swift; sourceTree = "<group>"; };
 		E20000000000000000000017 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
-		E20000000000000000000018 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		E20000000000000000000019 /* CalendarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewModel.swift; sourceTree = "<group>"; };
 		E20000000000000000000020 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		E20000000000000000000021 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
@@ -168,10 +203,50 @@
 		E20000000000000000000110 /* MacroPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroPlan.swift; sourceTree = "<group>"; };
 		E20000000000000000000111 /* MacroPlanService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroPlanService.swift; sourceTree = "<group>"; };
 		E20000000000000000000112 /* MacroPlanCreatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroPlanCreatorView.swift; sourceTree = "<group>"; };
+		E20000000000000000000113 /* MacroPlanDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroPlanDetailView.swift; sourceTree = "<group>"; };
 		E20000000000000000000120 /* TrainingObjective.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingObjective.swift; sourceTree = "<group>"; };
 		E20000000000000000000121 /* ObjectiveEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectiveEditorView.swift; sourceTree = "<group>"; };
 		E20000000000000000000122 /* ObjectivesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectivesListView.swift; sourceTree = "<group>"; };
 		F8C0177D2ED9EBD900E7CC41 /* EdgeCoachUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EdgeCoachUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E20000000000000000000200 /* Image+AppIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Image+AppIcon.swift"; sourceTree = "<group>"; };
+		E20000000000000000000201 /* Activity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Activity.swift; sourceTree = "<group>"; };
+		E20000000000000000000202 /* ActivityData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityData.swift; sourceTree = "<group>"; };
+		E20000000000000000000203 /* ActivityLight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityLight.swift; sourceTree = "<group>"; };
+		E20000000000000000000204 /* Activity+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Activity+Extensions.swift"; sourceTree = "<group>"; };
+		E20000000000000000000205 /* Discipline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Discipline.swift; sourceTree = "<group>"; };
+		E20000000000000000000210 /* CoachingConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingConfig.swift; sourceTree = "<group>"; };
+		E20000000000000000000211 /* CyclePlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyclePlan.swift; sourceTree = "<group>"; };
+		E20000000000000000000212 /* IntervalAnnotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalAnnotation.swift; sourceTree = "<group>"; };
+		E20000000000000000000213 /* PMCStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PMCStatus.swift; sourceTree = "<group>"; };
+		E20000000000000000000214 /* SessionMoveModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionMoveModels.swift; sourceTree = "<group>"; };
+		E20000000000000000000220 /* CalendarSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSyncService.swift; sourceTree = "<group>"; };
+		E20000000000000000000221 /* ChartTagParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartTagParser.swift; sourceTree = "<group>"; };
+		E20000000000000000000222 /* CoachingConfigService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingConfigService.swift; sourceTree = "<group>"; };
+		E20000000000000000000223 /* ComplianceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplianceService.swift; sourceTree = "<group>"; };
+		E20000000000000000000224 /* PMCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PMCService.swift; sourceTree = "<group>"; };
+		E20000000000000000000300 /* CycleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CycleService.swift; sourceTree = "<group>"; };
+		E20000000000000000000230 /* Styles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Styles.swift; sourceTree = "<group>"; };
+		E20000000000000000000231 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
+		E20000000000000000000240 /* ComplianceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplianceViewModel.swift; sourceTree = "<group>"; };
+		E20000000000000000000241 /* DashboardViewModel+Computed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardViewModel+Computed.swift"; sourceTree = "<group>"; };
+		E20000000000000000000242 /* DashboardViewModel+Loading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardViewModel+Loading.swift"; sourceTree = "<group>"; };
+		E20000000000000000000243 /* DashboardViewModel+Widgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardViewModel+Widgets.swift"; sourceTree = "<group>"; };
+		E20000000000000000000244 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
+		E20000000000000000000250 /* WeekPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekPlanView.swift; sourceTree = "<group>"; };
+		E20000000000000000000251 /* CoachingConfigSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingConfigSheet.swift; sourceTree = "<group>"; };
+		E20000000000000000000252 /* EnrichedMessageBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrichedMessageBubble.swift; sourceTree = "<group>"; };
+		E20000000000000000000253 /* ComplianceBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplianceBanner.swift; sourceTree = "<group>"; };
+		E20000000000000000000254 /* ProposalValidationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProposalValidationSheet.swift; sourceTree = "<group>"; };
+		E20000000000000000000260 /* PremiumAnimations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumAnimations.swift; sourceTree = "<group>"; };
+		E20000000000000000000261 /* SkeletonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonView.swift; sourceTree = "<group>"; };
+		E20000000000000000000262 /* VegaChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VegaChartView.swift; sourceTree = "<group>"; };
+		E20000000000000000000263 /* SessionBriefingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionBriefingView.swift; sourceTree = "<group>"; };
+		E20000000000000000000264 /* StoryContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryContainerView.swift; sourceTree = "<group>"; };
+		E20000000000000000000270 /* DashboardSkeletons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSkeletons.swift; sourceTree = "<group>"; };
+		E20000000000000000000271 /* PMCDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PMCDetailView.swift; sourceTree = "<group>"; };
+		E20000000000000000000272 /* PMCStatusWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PMCStatusWidget.swift; sourceTree = "<group>"; };
+		E20000000000000000000280 /* CoachingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingSettingsView.swift; sourceTree = "<group>"; };
+		E20000000000000000000281 /* IntervalAnnotationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalAnnotationSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -214,6 +289,8 @@
 				E40000000000000000000006 /* Services */,
 				E40000000000000000000007 /* ViewModels */,
 				E40000000000000000000008 /* Views */,
+				E40000000000000000000200 /* Extensions */,
+				E40000000000000000000201 /* Utilities */,
 				E20000000000000000000031 /* Assets.xcassets */,
 				E20000000000000000000032 /* Info.plist */,
 			);
@@ -238,6 +315,7 @@
 				E20000000000000000000050 /* ThemeManager.swift */,
 				E20000000000000000000051 /* IconManager.swift */,
 				E20000000000000000000052 /* LayoutManager.swift */,
+				E20000000000000000000230 /* Styles.swift */,
 			);
 			path = Theme;
 			sourceTree = "<group>";
@@ -245,8 +323,8 @@
 		E40000000000000000000005 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				E40000000000000000000205 /* Activity */,
 				E20000000000000000000006 /* User.swift */,
-				E20000000000000000000007 /* Activity.swift */,
 				E20000000000000000000008 /* PlannedSession.swift */,
 				E20000000000000000000009 /* Dashboard.swift */,
 				E20000000000000000000010 /* Chat.swift */,
@@ -256,6 +334,11 @@
 				E20000000000000000000090 /* PerformanceReport.swift */,
 				E20000000000000000000110 /* MacroPlan.swift */,
 				E20000000000000000000120 /* TrainingObjective.swift */,
+				E20000000000000000000210 /* CoachingConfig.swift */,
+				E20000000000000000000211 /* CyclePlan.swift */,
+				E20000000000000000000212 /* IntervalAnnotation.swift */,
+				E20000000000000000000213 /* PMCStatus.swift */,
+				E20000000000000000000214 /* SessionMoveModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -280,6 +363,12 @@
 				E20000000000000000000072 /* AudioRecorderService.swift */,
 				E20000000000000000000082 /* ChartDataService.swift */,
 				E20000000000000000000111 /* MacroPlanService.swift */,
+				E20000000000000000000220 /* CalendarSyncService.swift */,
+				E20000000000000000000221 /* ChartTagParser.swift */,
+				E20000000000000000000222 /* CoachingConfigService.swift */,
+				E20000000000000000000223 /* ComplianceService.swift */,
+				E20000000000000000000224 /* PMCService.swift */,
+				E20000000000000000000300 /* CycleService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -287,11 +376,12 @@
 		E40000000000000000000007 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				E40000000000000000000202 /* Dashboard */,
 				E20000000000000000000017 /* AuthViewModel.swift */,
-				E20000000000000000000018 /* DashboardViewModel.swift */,
 				E20000000000000000000019 /* CalendarViewModel.swift */,
 				E20000000000000000000020 /* ChatViewModel.swift */,
 				E20000000000000000000091 /* PerformanceViewModel.swift */,
+				E20000000000000000000240 /* ComplianceViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -309,6 +399,7 @@
 				E40000000000000000000015 /* Session */,
 				E40000000000000000000016 /* Plans */,
 				E40000000000000000000017 /* Components */,
+				E40000000000000000000203 /* Compliance */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -330,6 +421,9 @@
 				E20000000000000000000101 /* PerformanceMiniCards.swift */,
 				E20000000000000000000102 /* KPISummaryCard.swift */,
 				E20000000000000000000105 /* WidgetConfigSheets.swift */,
+				E20000000000000000000270 /* DashboardSkeletons.swift */,
+				E20000000000000000000271 /* PMCDetailView.swift */,
+				E20000000000000000000272 /* PMCStatusWidget.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -338,6 +432,7 @@
 			isa = PBXGroup;
 			children = (
 				E20000000000000000000026 /* CalendarView.swift */,
+				E20000000000000000000250 /* WeekPlanView.swift */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
@@ -347,6 +442,8 @@
 			children = (
 				E20000000000000000000027 /* CoachChatView.swift */,
 				E20000000000000000000073 /* ChatMediaComponents.swift */,
+				E20000000000000000000251 /* CoachingConfigSheet.swift */,
+				E20000000000000000000252 /* EnrichedMessageBubble.swift */,
 			);
 			path = Coach;
 			sourceTree = "<group>";
@@ -372,6 +469,7 @@
 				E20000000000000000000062 /* GearDetailView.swift */,
 				E20000000000000000000063 /* CustomizationView.swift */,
 				E20000000000000000000065 /* SessionDisplaySettingsView.swift */,
+				E20000000000000000000280 /* CoachingSettingsView.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -384,6 +482,7 @@
 				E20000000000000000000055 /* SessionAnalysisSheet.swift */,
 				E20000000000000000000080 /* SessionAdvancedCharts.swift */,
 				E20000000000000000000081 /* LogbookComponents.swift */,
+				E20000000000000000000281 /* IntervalAnnotationSheet.swift */,
 			);
 			path = Session;
 			sourceTree = "<group>";
@@ -393,6 +492,7 @@
 			children = (
 				E20000000000000000000046 /* TrainingPlanCreatorView.swift */,
 				E20000000000000000000112 /* MacroPlanCreatorView.swift */,
+				E20000000000000000000113 /* MacroPlanDetailView.swift */,
 				E20000000000000000000121 /* ObjectiveEditorView.swift */,
 				E20000000000000000000122 /* ObjectivesListView.swift */,
 			);
@@ -403,6 +503,10 @@
 			isa = PBXGroup;
 			children = (
 				E20000000000000000000083 /* InteractiveChartContainer.swift */,
+				E20000000000000000000260 /* PremiumAnimations.swift */,
+				E20000000000000000000261 /* SkeletonView.swift */,
+				E20000000000000000000262 /* VegaChartView.swift */,
+				E40000000000000000000204 /* Story */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -414,6 +518,63 @@
 				F8C0177D2ED9EBD900E7CC41 /* EdgeCoachUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		E40000000000000000000200 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				E20000000000000000000200 /* Image+AppIcon.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		E40000000000000000000201 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				E20000000000000000000231 /* HapticManager.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		E40000000000000000000202 /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				E20000000000000000000244 /* DashboardViewModel.swift */,
+				E20000000000000000000241 /* DashboardViewModel+Computed.swift */,
+				E20000000000000000000242 /* DashboardViewModel+Loading.swift */,
+				E20000000000000000000243 /* DashboardViewModel+Widgets.swift */,
+			);
+			path = Dashboard;
+			sourceTree = "<group>";
+		};
+		E40000000000000000000203 /* Compliance */ = {
+			isa = PBXGroup;
+			children = (
+				E20000000000000000000253 /* ComplianceBanner.swift */,
+				E20000000000000000000254 /* ProposalValidationSheet.swift */,
+			);
+			path = Compliance;
+			sourceTree = "<group>";
+		};
+		E40000000000000000000204 /* Story */ = {
+			isa = PBXGroup;
+			children = (
+				E20000000000000000000263 /* SessionBriefingView.swift */,
+				E20000000000000000000264 /* StoryContainerView.swift */,
+			);
+			path = Story;
+			sourceTree = "<group>";
+		};
+		E40000000000000000000205 /* Activity */ = {
+			isa = PBXGroup;
+			children = (
+				E20000000000000000000201 /* Activity.swift */,
+				E20000000000000000000202 /* ActivityData.swift */,
+				E20000000000000000000203 /* ActivityLight.swift */,
+				E20000000000000000000204 /* Activity+Extensions.swift */,
+				E20000000000000000000205 /* Discipline.swift */,
+			);
+			path = Activity;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -527,7 +688,6 @@
 				E10000000000000000000004 /* Typography.swift in Sources */,
 				E10000000000000000000005 /* Spacing.swift in Sources */,
 				E10000000000000000000006 /* User.swift in Sources */,
-				E10000000000000000000007 /* Activity.swift in Sources */,
 				E10000000000000000000008 /* PlannedSession.swift in Sources */,
 				E10000000000000000000009 /* Dashboard.swift in Sources */,
 				E10000000000000000000010 /* Chat.swift in Sources */,
@@ -539,7 +699,6 @@
 				E10000000000000000000015 /* PlansService.swift in Sources */,
 				E10000000000000000000016 /* ChatService.swift in Sources */,
 				E10000000000000000000017 /* AuthViewModel.swift in Sources */,
-				E10000000000000000000018 /* DashboardViewModel.swift in Sources */,
 				E10000000000000000000019 /* CalendarViewModel.swift in Sources */,
 				E10000000000000000000020 /* ChatViewModel.swift in Sources */,
 				E10000000000000000000021 /* MainTabView.swift in Sources */,
@@ -567,6 +726,7 @@
 				E10000000000000000000110 /* MacroPlan.swift in Sources */,
 				E10000000000000000000111 /* MacroPlanService.swift in Sources */,
 				E10000000000000000000112 /* MacroPlanCreatorView.swift in Sources */,
+				E10000000000000000000113 /* MacroPlanDetailView.swift in Sources */,
 				E10000000000000000000120 /* TrainingObjective.swift in Sources */,
 				E10000000000000000000121 /* ObjectiveEditorView.swift in Sources */,
 				E10000000000000000000122 /* ObjectivesListView.swift in Sources */,
@@ -594,6 +754,45 @@
 				E10000000000000000000091 /* PerformanceViewModel.swift in Sources */,
 				E10000000000000000000092 /* PerformanceView.swift in Sources */,
 				E10000000000000000000093 /* PerformanceDetailViews.swift in Sources */,
+				E10000000000000000000200 /* Image+AppIcon.swift in Sources */,
+				E10000000000000000000201 /* Activity.swift in Sources */,
+				E10000000000000000000202 /* ActivityData.swift in Sources */,
+				E10000000000000000000203 /* ActivityLight.swift in Sources */,
+				E10000000000000000000204 /* Activity+Extensions.swift in Sources */,
+				E10000000000000000000205 /* Discipline.swift in Sources */,
+				E10000000000000000000210 /* CoachingConfig.swift in Sources */,
+				E10000000000000000000211 /* CyclePlan.swift in Sources */,
+				E10000000000000000000212 /* IntervalAnnotation.swift in Sources */,
+				E10000000000000000000213 /* PMCStatus.swift in Sources */,
+				E10000000000000000000214 /* SessionMoveModels.swift in Sources */,
+				E10000000000000000000220 /* CalendarSyncService.swift in Sources */,
+				E10000000000000000000221 /* ChartTagParser.swift in Sources */,
+				E10000000000000000000222 /* CoachingConfigService.swift in Sources */,
+				E10000000000000000000223 /* ComplianceService.swift in Sources */,
+				E10000000000000000000224 /* PMCService.swift in Sources */,
+				E10000000000000000000300 /* CycleService.swift in Sources */,
+				E10000000000000000000230 /* Styles.swift in Sources */,
+				E10000000000000000000231 /* HapticManager.swift in Sources */,
+				E10000000000000000000240 /* ComplianceViewModel.swift in Sources */,
+				E10000000000000000000241 /* DashboardViewModel+Computed.swift in Sources */,
+				E10000000000000000000242 /* DashboardViewModel+Loading.swift in Sources */,
+				E10000000000000000000243 /* DashboardViewModel+Widgets.swift in Sources */,
+				E10000000000000000000244 /* DashboardViewModel.swift in Sources */,
+				E10000000000000000000250 /* WeekPlanView.swift in Sources */,
+				E10000000000000000000251 /* CoachingConfigSheet.swift in Sources */,
+				E10000000000000000000252 /* EnrichedMessageBubble.swift in Sources */,
+				E10000000000000000000253 /* ComplianceBanner.swift in Sources */,
+				E10000000000000000000254 /* ProposalValidationSheet.swift in Sources */,
+				E10000000000000000000260 /* PremiumAnimations.swift in Sources */,
+				E10000000000000000000261 /* SkeletonView.swift in Sources */,
+				E10000000000000000000262 /* VegaChartView.swift in Sources */,
+				E10000000000000000000263 /* SessionBriefingView.swift in Sources */,
+				E10000000000000000000264 /* StoryContainerView.swift in Sources */,
+				E10000000000000000000270 /* DashboardSkeletons.swift in Sources */,
+				E10000000000000000000271 /* PMCDetailView.swift in Sources */,
+				E10000000000000000000272 /* PMCStatusWidget.swift in Sources */,
+				E10000000000000000000280 /* CoachingSettingsView.swift in Sources */,
+				E10000000000000000000281 /* IntervalAnnotationSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
